@@ -1099,6 +1099,7 @@ function voiceCanonicalSegment(segment){
   let s=normalizeVoiceText(segment);
   s=s.replace(/\btapa\b/g,"capa");
   s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
+  s=s.replace(/\b(?:marlock|mar lok|mart lok)\b/g,"martlock");
   if(/\btallada\b/.test(s) && !/\bespada\b/.test(s)) s=s.replace(/\btallada\b/,"espada tallada");
   s=s.replace(/\bcomida\s+guiso\b/g,"guiso");
   s=s.replace(/\bbolsa\s+de\s+soldado\b/g,"botas de soldado");
@@ -1197,12 +1198,18 @@ function voiceSpecialCandidate(item,slot,qNorm){
   if(slot==="food" && /\bguiso avalonico\b/.test(qNorm)){
     return /\bguiso avalonico\b/.test(name) || /STEW.*AVALON/i.test(rest) ? 1600 : 0;
   }
+  if(slot==="food" && /^(tortilla|tortilla de cerdo)$/.test(qNorm)){
+    return /\btortilla de cerdo\b/.test(name) || /OMELETTE.*PORK|PORK.*OMELETTE/i.test(rest) ? 1600 : 0;
+  }
   // The speech recognizer often turns “Thetford” into “tedford”, “tetford”
   // or “teford”. voiceCanonicalSegment normalizes those spellings, but we
   // still give the cape family a direct high-confidence match so a cape
   // cannot lose to another object merely because of a phonetic spelling.
   if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\bthetford\b/.test(qNorm)){
     return /\bthetford\b/.test(name) || /THETFORD/i.test(rest) ? 1600 : 0;
+  }
+  if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\b(?:martlock|marlock|mar lok|mart lok)\b/.test(qNorm)){
+    return /\bmartlock\b/.test(name) || /MARTLOCK/i.test(rest) ? 1600 : 0;
   }
   return 0;
 }
@@ -1223,6 +1230,14 @@ function voiceGenericCandidates(slot,qNorm,variant){
       return (/^MEAL_STEW(?:$|_)/i.test(rest) || /\bguiso de ternera\b/.test(name)) && !/avalon/i.test(name+" "+rest);
     });
     if(stew.length) return stew;
+  }
+  if(slot==="food" && /^(tortilla|tortilla de cerdo)$/.test(qNorm)){
+    const tortilla=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return /\btortilla de cerdo\b/.test(name) || /OMELETTE.*PORK|PORK.*OMELETTE/i.test(rest);
+    });
+    if(tortilla.length) return tortilla;
   }
   return [];
 }
