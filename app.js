@@ -1071,7 +1071,9 @@ function voiceCleanName(text){
     .replace(/\b(?:t|tier)?\s*[4-8]\s+[0-4]\b/g," ")
     .replace(/\b(?:punto|dot|nivel|tier)\b/g," ")
     .replace(/\b(?:quiero|ponme|pon|dame|usar|usa|con|llevar|llevo|ademas|además|una|un|la|el|las|los|de|del|of|the|a|an)\b/g," ")
-    .replace(/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g," ")
+    // Conservamos las palabras de equipamiento (capucha, espada, capa, etc.).
+    // Muchos nombres reales de Albion contienen precisamente esas palabras
+    // (por ejemplo, "Capucha de erudito"), y quitarlas provoca empates.
     .replace(/\s+/g," ").trim();
 }
 
