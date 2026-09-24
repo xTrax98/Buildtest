@@ -20,7 +20,7 @@ const I18N = {
     newComposition:"Nueva composición", newZvZComposition:"Nueva composición ZvZ", compositionName:"Nombre de la composición", player:"Jugador", role:"Rol", preset:"Preset", addMember:"Añadir miembro", saveComposition:"Guardar composición", cancel:"Cancelar",
     compositionSaved:"Composición guardada: ", presetsCount:"presets", edit:"Editar", view:"Ver", backToCreator:"Volver al creador", saveNames:"Guardar nombres", zvzNamePlaceholder:"Nombre del jugador", zvzPreset:"Preset", zvzCompositionHelp:"Selecciona presets para tu composición ZvZ. Los nombres se ponen desde Ver.", compositionPreview:"Vista previa de la composición", players:"jugadores",
     load:"Cargar", duplicate:"Duplicar", delete:"Eliminar", saved:"Preset guardado: ",
-    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.",
+    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.",
     allCategories:"Todas las categorías", loading:"Cargando objetos...", tier:"Tier",
     enchantment:"Encantamiento", quality:"Calidad", add:"Añadir al build",
     loadingData:"Cargando base de objetos de Albion...", dataReady:"Objetos cargados: ",
@@ -38,7 +38,7 @@ const I18N = {
     newComposition:"New composition", newZvZComposition:"New ZvZ composition", compositionName:"Composition name", player:"Player", role:"Role", preset:"Preset", addMember:"Add member", saveComposition:"Save composition", cancel:"Cancel",
     compositionSaved:"Composition saved: ", presetsCount:"presets", edit:"Edit", view:"View", backToCreator:"Back to creator", saveNames:"Save names", zvzNamePlaceholder:"Player name", zvzPreset:"Preset", zvzCompositionHelp:"Select presets for your ZvZ composition. Names are entered from View.", compositionPreview:"Composition preview", players:"players",
     load:"Load", duplicate:"Duplicate", delete:"Delete", saved:"Preset saved: ",
-    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.",
+    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.",
     allCategories:"All categories", loading:"Loading items...", tier:"Tier",
     enchantment:"Enchantment", quality:"Quality", add:"Add to build",
     loadingData:"Loading Albion item database...", dataReady:"Items loaded: ",
@@ -1142,17 +1142,48 @@ function startVoiceRecognition(){
   if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
   voiceRecognition=new SR();
   voiceRecognition.lang=state.lang==="es"?"es-ES":"en-US";
-  voiceRecognition.interimResults=false; voiceRecognition.continuous=false; voiceRecognition.maxAlternatives=3;
-  $("#voiceStatus").textContent=t("voiceListening"); $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("stopListening"))}</span>`;
+  voiceRecognition.interimResults=false;
+  voiceRecognition.continuous=false;
+  voiceRecognition.maxAlternatives=3;
+  $("#voiceStatus").textContent=t("voiceStarting");
+  $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("stopListening"))}</span>`;
+  voiceRecognition.onstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
+  voiceRecognition.onaudiostart=()=>{$("#voiceStatus").textContent=t("voiceAudioStart");};
+  voiceRecognition.onspeechstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
   voiceRecognition.onresult=e=>{
-    const transcript=Array.from(e.results).map(r=>r[0].transcript).join(" ");
-    $("#voiceTranscript").textContent=transcript;
-    voiceResults=parseVoiceBuild(transcript); renderVoiceMatches(voiceResults);
-    $("#applyVoice").disabled=!voiceResults.parsed.length;
+    const transcript=Array.from(e.results).map(r=>r[0].transcript).join(" ").trim();
+    $("#voiceTranscript").textContent=transcript||t("voiceNoMatch");
+    if(transcript){
+      voiceResults=parseVoiceBuild(transcript);
+      renderVoiceMatches(voiceResults);
+      $("#applyVoice").disabled=!voiceResults.parsed.length;
+    }
   };
-  voiceRecognition.onerror=e=>{$("#voiceStatus").textContent=e.error==="not-allowed"?"Permiso de micrófono denegado.":`Error: ${e.error}`;$("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;};
-  voiceRecognition.onend=()=>{$("#voiceStatus").textContent="";$("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;voiceRecognition=null;};
-  try{voiceRecognition.start();}catch{}
+  voiceRecognition.onnomatch=()=>{
+    $("#voiceStatus").textContent=t("voiceNoMatch");
+  };
+  voiceRecognition.onerror=e=>{
+    const messages={
+      "not-allowed":"Permiso de micrófono denegado.",
+      "audio-capture":"No se ha encontrado ningún micrófono.",
+      "no-speech":"No he detectado voz. Pulsa Escuchar y habla.",
+      "network":"Error de red del reconocimiento de voz.",
+      "aborted":"Reconocimiento detenido."
+    };
+    $("#voiceStatus").textContent=messages[e.error]||`Error de voz: ${e.error}`;
+    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
+  };
+  voiceRecognition.onend=()=>{
+    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
+    voiceRecognition=null;
+  };
+  try{
+    voiceRecognition.start();
+  }catch(e){
+    $("#voiceStatus").textContent=t("voiceStartError");
+    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
+    voiceRecognition=null;
+  }
 }
 
 function applyVoiceBuild(){
