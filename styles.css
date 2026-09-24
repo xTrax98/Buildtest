@@ -1120,3 +1120,32 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
   z-index:2147483647 !important;
   pointer-events:auto !important;
 }
+
+/* 0.3.105 TEST: when a composition has more than 10 players,
+   split the player cards into two columns. Up to 10 stays as one column. */
+.workspace.preview-mode .composition-builds.many-players,
+.workspace.preview-mode .zvz-build-list.many-players{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  align-items:start;
+}
+.workspace.preview-mode .composition-builds.many-players .composition-build-card,
+.workspace.preview-mode .zvz-build-list.many-players .zvz-build-row{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  box-sizing:border-box;
+}
+@media(max-width:1100px){
+  .workspace.preview-mode .composition-builds.many-players,
+  .workspace.preview-mode .zvz-build-list.many-players{
+    grid-template-columns:1fr;
+  }
+}
+@media(max-width:680px){
+  .workspace.preview-mode .composition-builds.many-players,
+  .workspace.preview-mode .zvz-build-list.many-players{
+    grid-template-columns:1fr;
+  }
+}
