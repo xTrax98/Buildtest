@@ -1103,8 +1103,16 @@ function voiceSlotFromText(text){
 function voiceCanonicalSegment(segment){
   let s=normalizeVoiceText(segment);
   s=s.replace(/\btapa\b/g,"capa");
-  s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
+  // Thetford: keep the existing behaviour, but also accept the common
+  // speech split "ted for" / "tet for" / "te for".
+  s=s.replace(/\b(?:tedford|ted\s+for|tetford|tet\s+for|teford|te\s+for|thet\s+ford|thetford)\b/g,"thetford");
   s=s.replace(/\b(?:marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/g,"martlock");
+  // Caerleon: Chrome often inserts a space or slightly changes the vowel.
+  // Do not alter the Fort Sterling aliases here; its current fuzzy match is
+  // intentionally left untouched.
+  if(/\b(?:capa|cape)\b/.test(s)){
+    s=s.replace(/\b(?:caer\s+leon|caer\s+león|caerleon|caer\s+leaon|caer\s+leon|cair\s+leon|care\s+leon|car\s+leon)\b/g,"caerleon");
+  }
   // Atajos de voz para ciudades/facciones de capas. Chrome puede deformar
   // Lymhurst de muchas maneras (lym, lyn, link, lynk, ninjurse, etc.).
   // Solo aplicamos estos alias cuando el segmento es una capa, para no
@@ -1237,6 +1245,9 @@ function voiceSpecialCandidate(item,slot,qNorm){
   }
   if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\b(?:martlock|marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/.test(qNorm)){
     return /\bmartlock\b/.test(name) || /MARTLOCK/i.test(rest) ? 1600 : 0;
+  }
+  if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\bcaerleon\b/.test(qNorm)){
+    return /\bcaerleon\b/.test(name) || /CAERLEON/i.test(rest) ? 1600 : 0;
   }
   return 0;
 }
