@@ -1039,6 +1039,7 @@ let voiceAccumulatedTranscript = "";
 let voiceSearchRunning = false;
 let voicePendingTranscript = "";
 let voiceIndex = new Map();
+let voiceAlbionWords = [];
 const voiceSlotCache = new Map();
 
 function normalizeVoiceText(value){
@@ -1200,6 +1201,17 @@ function voiceSpecialCandidate(item,slot,qNorm){
   if(slot==="food" && /\bguiso avalonico\b/.test(qNorm)){
     return /\bguiso avalonico\b/.test(name) || /STEW.*AVALON/i.test(rest) ? 1600 : 0;
   }
+  if(slot==="potion" && /^(pocion de energia|energia|pocion energia)$/.test(qNorm)){
+    return /\benergia\b/.test(name) || /ENERGY/i.test(rest) ? 1600 : 0;
+  }
+  if(slot==="potion" && /^(energia|pocion de energia|pocion energia)$/.test(qNorm)){
+    const energy=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return /\benergia\b/.test(name) || /ENERGY/i.test(rest);
+    });
+    if(energy.length) return energy;
+  }
   if(slot==="food" && /^(tortilla|tortilla de cerdo)$/.test(qNorm)){
     return /\btortilla de cerdo\b/.test(name) || /OMELETTE.*PORK|PORK.*OMELETTE/i.test(rest) ? 1600 : 0;
   }
@@ -1233,6 +1245,17 @@ function voiceGenericCandidates(slot,qNorm,variant){
     });
     if(stew.length) return stew;
   }
+  if(slot==="potion" && /^(pocion de energia|energia|pocion energia)$/.test(qNorm)){
+    return /\benergia\b/.test(name) || /ENERGY/i.test(rest) ? 1600 : 0;
+  }
+  if(slot==="potion" && /^(energia|pocion de energia|pocion energia)$/.test(qNorm)){
+    const energy=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return /\benergia\b/.test(name) || /ENERGY/i.test(rest);
+    });
+    if(energy.length) return energy;
+  }
   if(slot==="food" && /^(tortilla|tortilla de cerdo)$/.test(qNorm)){
     const tortilla=pool.filter(e=>{
       const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
@@ -1244,13 +1267,73 @@ function voiceGenericCandidates(slot,qNorm,variant){
   return [];
 }
 
+
+function voiceJaro(a,b){
+  a=normalizeVoiceText(a); b=normalizeVoiceText(b);
+  if(a===b) return 1;
+  if(!a||!b) return 0;
+  const range=Math.max(Math.floor(Math.max(a.length,b.length)/2)-1,0);
+  const ma=new Array(a.length).fill(false), mb=new Array(b.length).fill(false);
+  let matches=0;
+  for(let i=0;i<a.length;i++){
+    const start=Math.max(0,i-range), end=Math.min(i+range+1,b.length);
+    for(let j=start;j<end;j++){
+      if(mb[j]||a[i]!==b[j]) continue;
+      ma[i]=true; mb[j]=true; matches++; break;
+    }
+  }
+  if(!matches) return 0;
+  const aa=[],bb=[];
+  for(let i=0;i<a.length;i++) if(ma[i]) aa.push(a[i]);
+  for(let j=0;j<b.length;j++) if(mb[j]) bb.push(b[j]);
+  let trans=0; for(let i=0;i<aa.length;i++) if(aa[i]!==bb[i]) trans++;
+  return (matches/a.length + matches/b.length + (matches-trans/2)/matches)/3;
+}
+
+function voicePhoneticKey(word){
+  let s=normalizeVoiceText(word)
+    .replace(/ph/g,'f').replace(/th/g,'t').replace(/ck/g,'k')
+    .replace(/qu/g,'k').replace(/c(?=[eiy])/g,'s').replace(/c/g,'k')
+    .replace(/z/g,'s').replace(/v/g,'b').replace(/w/g,'u')
+    .replace(/h/g,'').replace(/j/g,'y');
+  // Keep vowels lightly: browser ASR errors often preserve the consonant frame.
+  s=s.replace(/[aeiou]/g,'a').replace(/(.)\1+/g,'$1');
+  return s;
+}
+
+function voiceAlbionWordScore(spoken,known){
+  const a=normalizeVoiceText(spoken), b=normalizeVoiceText(known);
+  if(a===b) return 1;
+  if(a.length<3 || b.length<3) return 0;
+  const j=voiceJaro(a,b), d=voiceWordSimilarity(a,b);
+  const pk=voicePhoneticKey(a), qk=voicePhoneticKey(b);
+  const phon=pk&&qk?voiceJaro(pk,qk):0;
+  // Strong weight on actual spelling similarity, with phonetic shape as a
+  // second signal. This is applied to Albion vocabulary words, not arbitrary text.
+  return Math.max(d*0.55+j*0.25+phon*0.20, d*0.72+phon*0.28);
+}
+
+function voiceNormalizeQueryWithAlbionWords(tokens){
+  return tokens.map(token=>{
+    if(!voiceAlbionWords.length || token.length<4) return token;
+    let best=token, bestScore=0;
+    for(const known of voiceAlbionWords){
+      if(Math.abs(known.length-token.length)>4) continue;
+      const sc=voiceAlbionWordScore(token,known);
+      if(sc>bestScore){bestScore=sc;best=known;}
+    }
+    // Only rewrite when the Albion vocabulary gives us a clear match.
+    return bestScore>=0.72?best:token;
+  });
+}
+
 function voiceCandidates(segment){
   segment=voiceCanonicalSegment(segment);
   const spokenSlot=voiceSlotFromText(segment);
   const variant=voiceVariant(segment);
   const query=voiceCleanName(segment);
   const qNorm=normalizeVoiceText(query);
-  const qTokens=voiceTokens(query);
+  const qTokens=voiceNormalizeQueryWithAlbionWords(voiceTokens(query));
   let candidates=[];
 
   if(spokenSlot){
@@ -1538,11 +1621,17 @@ function applyVoiceBuild(){
 function buildVoiceIndex(){
   voiceIndex=new Map([["head",[]],["armor",[]],["shoes",[]],["cape",[]],["bag",[]],["potion",[]],["food",[]],["offhand",[]],["mainhand",[]]]);
   voiceSlotCache.clear();
+  const words=new Set();
   for(const item of state.items){
     const slot=voiceSlotForItem(item);
     if(!slot || !voiceIndex.has(slot)) continue;
-    voiceIndex.get(slot).push({item,slot,names:voiceItemNames(item)});
+    const names=voiceItemNames(item);
+    voiceIndex.get(slot).push({item,slot,names});
+    for(const name of names){
+      for(const w of voiceQueryTokens(name)) if(w.length>=4) words.add(w);
+    }
   }
+  voiceAlbionWords=[...words];
 }
 
 async function loadItems(){
