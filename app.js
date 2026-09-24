@@ -1095,14 +1095,22 @@ function voiceSlotFromText(text){
   return null;
 }
 
+function voiceCanonicalSegment(segment){
+  let s=normalizeVoiceText(segment);
+  s=s.replace(/\btapa\b/g,"capa");
+  s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
+  if(/\btallada\b/.test(s) && !/\bespada\b/.test(s)) s=s.replace(/\btallada\b/,"espada tallada");
+  s=s.replace(/\bcomida\s+guiso\b/g,"guiso");
+  s=s.replace(/\bbolsa\s+de\s+soldado\b/g,"botas de soldado");
+  return s.replace(/\s+/g," ").trim();
+}
+
 function voiceSegments(transcript){
-  const text=normalizeVoiceText(transcript)
-    .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y)\b/g," ")
+  let text=normalizeVoiceText(transcript)
+    .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y|and)\b/g," ")
     .replace(/\s+/g," ").trim();
-  // Only words that can start a new slot are boundaries. Do not use words
-  // such as "gigantismo" or "tallada" as boundaries: they are item names
-  // and would split "poción de gigantismo" / "espada tallada" in half.
-  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  text=voiceCanonicalSegment(text);
+  const marker=/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
   const matches=[...text.matchAll(marker)];
   if(!matches.length) return text?[text]:[];
   const out=[];
@@ -1110,10 +1118,11 @@ function voiceSegments(transcript){
     const a=matches[i].index;
     const b=i+1<matches.length?matches[i+1].index:text.length;
     const part=text.slice(a,b).trim();
-    if(part) out.push(part);
+    if(part) out.push(voiceCanonicalSegment(part));
   }
-  return out;
+  return out.filter(Boolean);
 }
+
 function voiceWordSimilarity(a,b){
   a=normalizeVoiceText(a); b=normalizeVoiceText(b);
   if(a===b) return 1;
@@ -1190,7 +1199,29 @@ function voiceSpecialCandidate(item,slot,qNorm){
   }
   return 0;
 }
+function voiceGenericCandidates(slot,qNorm,variant){
+  const pool=voiceIndex.get(slot)||[];
+  if(slot==="bag" && /^(bolsa|bag)$/.test(qNorm)){
+    const generic=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return rest==="BAG" || /^(bolsa|bag)$/.test(name);
+    });
+    if(generic.length) return generic;
+  }
+  if(slot==="food" && /^(guiso|stew|comida)$/.test(qNorm)){
+    const stew=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return (/^MEAL_STEW(?:$|_)/i.test(rest) || /\bguiso de ternera\b/.test(name)) && !/avalon/i.test(name+" "+rest);
+    });
+    if(stew.length) return stew;
+  }
+  return [];
+}
+
 function voiceCandidates(segment){
+  segment=voiceCanonicalSegment(segment);
   const spokenSlot=voiceSlotFromText(segment);
   const variant=voiceVariant(segment);
   const query=voiceCleanName(segment);
@@ -1198,62 +1229,72 @@ function voiceCandidates(segment){
   const qTokens=voiceTokens(query);
   let candidates=[];
 
-  // Search only the prebuilt voice index. This avoids scanning the full
-  // items.json and running matchesSlot() every time the user speaks.
-  const pools = spokenSlot ? (voiceIndex.get(spokenSlot)||[]) : Array.from(voiceIndex.values()).flat();
-  for(const entry of pools){
-    const item=entry.item;
-    const itemSlot=entry.slot;
-    if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
-
-    const names=entry.names;
-    let best=0;
-    for(const name of names){
-      const nTokens=voiceTokens(name);
-      if(!nTokens.length || !qTokens.length) continue;
-
-      // Exact token coverage first. This is the normal path and avoids the
-      // expensive edit-distance calculation for unrelated objects.
-      const exactMatched=qTokens.filter(qt=>nTokens.includes(qt)).length;
-      const exactCoverage=exactMatched/qTokens.length;
-      let score=0;
-      if(exactCoverage===1) score=250 + qTokens.length*45;
-
-      // Only use fuzzy comparison when at least one token is already close.
-      if(score===0){
-        let matched=0, fuzzy=0;
-        for(const qt of qTokens){
-          let ws=0;
-          for(const nt of nTokens){
-            if(nt===qt){ws=1;break;}
-            if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
-            else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
-          }
-          if(ws>=0.72){matched++;fuzzy+=ws;}
-        }
-        const coverage=matched/qTokens.length;
-        if(coverage===1) score=120+fuzzy*35;
-      }
-
-      const special=voiceSpecialCandidate(item,itemSlot,qNorm);
-      if(special) score=Math.max(score,special);
-
-      if(score>0){
-        const nq=normalizeVoiceText(name);
-        if(nq===qNorm) score+=500;
-        else if(qNorm && nq.includes(qNorm)) score+=260;
-        best=Math.max(best,score);
-      }
-    }
-    if(best>0) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
+  if(spokenSlot){
+    const direct=voiceGenericCandidates(spokenSlot,qNorm,variant);
+    if(direct.length) candidates=direct.map(e=>({item:e.item,slot:e.slot,score:1800,tier:variant.tier,enchant:variant.enchant}));
   }
 
-  // If no tier was spoken, choose the highest tier for the matched family.
-  // Generic "bolsa" is a special case: prefer the actual generic Bolsa item,
-  // not Bolsa del obrero or another named bag.
-  if(!variant.tier && (qNorm==="bolsa" || qNorm==="bag")){
-    const generic=candidates.filter(c=>/^(bolsa|bag)$/i.test(normalizeVoiceText(getName(c.item))));
-    if(generic.length) candidates=generic;
+  const slotsToSearch=spokenSlot?[spokenSlot]:Array.from(voiceIndex.keys());
+  for(const slot of slotsToSearch){
+    for(const entry of (voiceIndex.get(slot)||[])){
+      const item=entry.item;
+      if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
+      let best=0;
+      for(const name of entry.names){
+        const nTokens=voiceTokens(name);
+        if(!nTokens.length || !qTokens.length) continue;
+        const exactMatched=qTokens.filter(qt=>nTokens.includes(qt)).length;
+        const exactCoverage=exactMatched/qTokens.length;
+        let score=exactCoverage===1 ? 250+qTokens.length*45 : 0;
+        if(score===0){
+          let matched=0,fuzzy=0;
+          for(const qt of qTokens){
+            let ws=0;
+            for(const nt of nTokens){
+              if(nt===qt){ws=1;break;}
+              if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
+              else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
+            }
+            if(ws>=0.72){matched++;fuzzy+=ws;}
+          }
+          if(matched===qTokens.length) score=120+fuzzy*35;
+        }
+        if(score>0){
+          const nq=normalizeVoiceText(name);
+          if(nq===qNorm) score+=500;
+          else if(qNorm && nq.includes(qNorm)) score+=260;
+          best=Math.max(best,score);
+        }
+      }
+      if(best>0) candidates.push({item,slot:entry.slot,score:best,tier:variant.tier,enchant:variant.enchant});
+    }
+  }
+
+  if(!candidates.length && spokenSlot){
+    for(const slot of voiceIndex.keys()){
+      if(slot===spokenSlot) continue;
+      for(const entry of (voiceIndex.get(slot)||[])){
+        const item=entry.item;
+        if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
+        let best=0;
+        for(const name of entry.names){
+          const nTokens=voiceTokens(name);
+          if(!qTokens.length||!nTokens.length) continue;
+          let matched=0,fuzzy=0;
+          for(const qt of qTokens){
+            let ws=0;
+            for(const nt of nTokens){
+              if(nt===qt){ws=1;break;}
+              if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
+              else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
+            }
+            if(ws>=0.72){matched++;fuzzy+=ws;}
+          }
+          if(matched===qTokens.length) best=Math.max(best,100+fuzzy*30);
+        }
+        if(best) candidates.push({item,slot,score:best,tier:variant.tier,enchant:variant.enchant});
+      }
+    }
   }
 
   const familyBest=new Map();
@@ -1261,12 +1302,11 @@ function voiceCandidates(segment){
     const key=voiceFamilyKey(c.item,c.slot);
     const tier=parseItemVariant(c.item.id).tier||0;
     const current=familyBest.get(key);
-    if(!current || tier>(parseItemVariant(current.item.id).tier||0) ||
-       (tier===(parseItemVariant(current.item.id).tier||0) && c.score>current.score)) familyBest.set(key,c);
+    if(!current || tier>(parseItemVariant(current.item.id).tier||0) || (tier===(parseItemVariant(current.item.id).tier||0) && c.score>current.score)) familyBest.set(key,c);
   }
   candidates=[...familyBest.values()];
   candidates.sort((a,b)=>{
-    const ta=parseItemVariant(a.item.id).tier||0, tb=parseItemVariant(b.item.id).tier||0;
+    const ta=parseItemVariant(a.item.id).tier||0,tb=parseItemVariant(b.item.id).tier||0;
     if(!variant.tier && ta!==tb) return tb-ta;
     return b.score-a.score;
   });
@@ -1275,10 +1315,11 @@ function voiceCandidates(segment){
 
 function parseVoiceBuild(transcript){
   const parsed=[],ambiguous=[];
-  for(const segment of voiceSegments(transcript)){
+  for(const rawSegment of voiceSegments(transcript)){
+    const segment=voiceCanonicalSegment(rawSegment);
     const candidates=voiceCandidates(segment);
     if(!candidates.length){ambiguous.push(segment);continue;}
-    const best=candidates[0], second=candidates[1];
+    const best=candidates[0],second=candidates[1];
     const bestName=normalizeVoiceText(getName(best.item));
     const secondName=second?normalizeVoiceText(getName(second.item)):"";
     if(second && best.score<700 && best.score-second.score<12 && bestName!==secondName){ambiguous.push(segment);continue;}
