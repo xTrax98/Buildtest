@@ -1285,7 +1285,7 @@ function voiceCandidates(segment){
               if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
               else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
             }
-            if(ws>=0.72){matched++;fuzzy+=ws;}
+            if(ws>=0.68){matched++;fuzzy+=ws;}
           }
           if(matched===qTokens.length) score=120+fuzzy*35;
         }
@@ -1318,7 +1318,7 @@ function voiceCandidates(segment){
               if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
               else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
             }
-            if(ws>=0.72){matched++;fuzzy+=ws;}
+            if(ws>=0.68){matched++;fuzzy+=ws;}
           }
           if(matched===qTokens.length) best=Math.max(best,100+fuzzy*30);
         }
@@ -1345,13 +1345,17 @@ function voiceCandidates(segment){
         for(const qt of qTokens){
           let local=0;
           for(const nt of nameTokens){
+            // Tolerancia general a pequeños errores de SpeechRecognition:
+            // "marlow" -> "martlock", "balon" -> "badon", etc.
             local=Math.max(local, voiceWordSimilarity(qt,nt));
           }
-          if(local>=0.55){matched++; total+=local;}
+          if(local>=0.52){matched++; total+=local;}
         }
         if(matched===qTokens.length) bestNameScore=Math.max(bestNameScore,total/qTokens.length);
       }
-      if(bestNameScore>=0.62) fuzzy.push({item,slot:spokenSlot,score:520+bestNameScore*180,tier:variant.tier,enchant:variant.enchant});
+      // La similitud se aplica a TODOS los objetos, no a nombres concretos.
+      // Exigimos una coincidencia razonablemente clara para evitar falsos positivos.
+      if(bestNameScore>=0.56) fuzzy.push({item,slot:spokenSlot,score:560+bestNameScore*220,tier:variant.tier,enchant:variant.enchant});
     }
     candidates.push(...fuzzy);
   }
