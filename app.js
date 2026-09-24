@@ -695,22 +695,34 @@ function setLibraryTab(tab){
   }
 
   function runPortalAction(button){
-    const attrs = button.dataset || {};
+    // Read the exact data-* attributes from the cloned button. This is deliberately
+    // explicit for ZvZ as well, so its actions do not depend on DOMStringMap naming.
+    const actionMap = [
+      ['data-load-preset', loadPreset],
+      ['data-duplicate-preset', duplicatePreset],
+      ['data-rename-preset', renamePreset],
+      ['data-delete-preset', deletePreset],
+      ['data-view-composition', showCompositionPreview],
+      ['data-duplicate-composition', duplicateComposition],
+      ['data-rename-composition', renameComposition],
+      ['data-edit-composition', openCompositionEditor],
+      ['data-delete-composition', deleteComposition],
+      ['data-view-zvz', showZvZPreview],
+      ['data-duplicate-zvz', duplicateZvZ],
+      ['data-rename-zvz', renameZvZ],
+      ['data-edit-zvz', openZvZEditor],
+      ['data-delete-zvz', deleteZvZ]
+    ];
+    let fn=null, id=null;
+    for(const [attr,handler] of actionMap){
+      const value=button.getAttribute(attr);
+      if(value!==null){ fn=handler; id=value; break; }
+    }
+    if(!fn) return;
     closePortal();
-    if(attrs.loadPreset) return loadPreset(attrs.loadPreset);
-    if(attrs.duplicatePreset) return duplicatePreset(attrs.duplicatePreset);
-    if(attrs.renamePreset) return renamePreset(attrs.renamePreset);
-    if(attrs.deletePreset) return deletePreset(attrs.deletePreset);
-    if(attrs.viewComposition) return showCompositionPreview(attrs.viewComposition);
-    if(attrs.duplicateComposition) return duplicateComposition(attrs.duplicateComposition);
-    if(attrs.renameComposition) return renameComposition(attrs.renameComposition);
-    if(attrs.editComposition) return openCompositionEditor(attrs.editComposition);
-    if(attrs.deleteComposition) return deleteComposition(attrs.deleteComposition);
-    if(attrs.viewZvZ) return showZvZPreview(attrs.viewZvZ);
-    if(attrs.duplicateZvZ) return duplicateZvZ(attrs.duplicateZvZ);
-    if(attrs.renameZvZ) return renameZvZ(attrs.renameZvZ);
-    if(attrs.editZvZ) return openZvZEditor(attrs.editZvZ);
-    if(attrs.deleteZvZ) return deleteZvZ(attrs.deleteZvZ);
+    // Run after the portal/shield have been removed so the underlying UI can
+    // safely update itself, especially on touch devices.
+    window.setTimeout(()=>fn(id),0);
   }
 
   function openPortal(details){
@@ -749,11 +761,20 @@ function setLibraryTab(tab){
     portal.style.top=Math.round(top)+'px';
 
     portal.addEventListener('pointerdown',e=>e.stopPropagation(),true);
+    portal.querySelectorAll('button').forEach(button=>{
+      button.addEventListener('pointerup',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        runPortalAction(button);
+      },true);
+      button.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+      },true);
+    });
     portal.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
-      const button=event.target.closest('button');
-      if(button && portal.contains(button)) runPortalAction(button);
     },true);
   }
 
