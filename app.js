@@ -1197,6 +1197,13 @@ function voiceSpecialCandidate(item,slot,qNorm){
   if(slot==="food" && /\bguiso avalonico\b/.test(qNorm)){
     return /\bguiso avalonico\b/.test(name) || /STEW.*AVALON/i.test(rest) ? 1600 : 0;
   }
+  // The speech recognizer often turns “Thetford” into “tedford”, “tetford”
+  // or “teford”. voiceCanonicalSegment normalizes those spellings, but we
+  // still give the cape family a direct high-confidence match so a cape
+  // cannot lose to another object merely because of a phonetic spelling.
+  if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\bthetford\b/.test(qNorm)){
+    return /\bthetford\b/.test(name) || /THETFORD/i.test(rest) ? 1600 : 0;
+  }
   return 0;
 }
 function voiceGenericCandidates(slot,qNorm,variant){
@@ -1232,6 +1239,14 @@ function voiceCandidates(segment){
   if(spokenSlot){
     const direct=voiceGenericCandidates(spokenSlot,qNorm,variant);
     if(direct.length) candidates=direct.map(e=>({item:e.item,slot:e.slot,score:1800,tier:variant.tier,enchant:variant.enchant}));
+
+    // High-confidence family aliases (for example Thetford capes) are
+    // evaluated before the generic fuzzy matcher.
+    for(const entry of (voiceIndex.get(spokenSlot)||[])){
+      if(variant.tier && parseItemVariant(entry.item.id).tier!==variant.tier) continue;
+      const special=voiceSpecialCandidate(entry.item,spokenSlot,qNorm);
+      if(special>0) candidates.push({item:entry.item,slot:spokenSlot,score:special,tier:variant.tier,enchant:variant.enchant});
+    }
   }
 
   const slotsToSearch=spokenSlot?[spokenSlot]:Array.from(voiceIndex.keys());
