@@ -1086,7 +1086,7 @@ function voiceSlotFromText(text){
   if(/\b(capa|capas|tapa|cape)\b/.test(s)) return "cape";
   if(/\b(bolsa|bolsas|bag|bags)\b/.test(s)) return "bag";
   if(/\b(pocion|pociones|potion|potions|gigantismo)\b/.test(s)) return "potion";
-  if(/\b(guiso|comida|comidas|estofado|food|stew)\b/.test(s)) return "food";
+  if(/\b(guiso|comida|comidas|estofado|tortilla|tortillas|food|stew|omelette)\b/.test(s)) return "food";
   if(/\b(sandalia|sandalias|botas|zapatos|shoes|boots)\b/.test(s)) return "shoes";
   if(/\b(capucha|casco|cascos|cabeza|helmet|helmets|hood|head)\b/.test(s)) return "head";
   if(/\b(armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket)\b/.test(s)) return "armor";
@@ -1099,7 +1099,7 @@ function voiceCanonicalSegment(segment){
   let s=normalizeVoiceText(segment);
   s=s.replace(/\btapa\b/g,"capa");
   s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
-  s=s.replace(/\b(?:marlock|mar lok|mart lok)\b/g,"martlock");
+  s=s.replace(/\b(?:marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/g,"martlock");
   if(/\btallada\b/.test(s) && !/\bespada\b/.test(s)) s=s.replace(/\btallada\b/,"espada tallada");
   s=s.replace(/\bcomida\s+guiso\b/g,"guiso");
   s=s.replace(/\bbolsa\s+de\s+soldado\b/g,"botas de soldado");
@@ -1208,7 +1208,7 @@ function voiceSpecialCandidate(item,slot,qNorm){
   if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\bthetford\b/.test(qNorm)){
     return /\bthetford\b/.test(name) || /THETFORD/i.test(rest) ? 1600 : 0;
   }
-  if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\b(?:martlock|marlock|mar lok|mart lok)\b/.test(qNorm)){
+  if(slot==="cape" && /\b(?:capa|cape)\b/.test(qNorm) && /\b(?:martlock|marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/.test(qNorm)){
     return /\bmartlock\b/.test(name) || /MARTLOCK/i.test(rest) ? 1600 : 0;
   }
   return 0;
@@ -1325,6 +1325,35 @@ function voiceCandidates(segment){
         if(best) candidates.push({item,slot,score:best,tier:variant.tier,enchant:variant.enchant});
       }
     }
+  }
+
+  // Proper-name fallback: when the spoken name is close to a single item
+  // in the requested slot, prefer it even if SpeechRecognition distorted
+  // several letters (e.g. "marlow" -> "Martlock"). This is deliberately
+  // conservative: it only applies when one candidate is clearly ahead.
+  if(spokenSlot && qNorm){
+    const pool=voiceIndex.get(spokenSlot)||[];
+    const fuzzy=[];
+    for(const entry of pool){
+      const item=entry.item;
+      if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
+      let bestNameScore=0;
+      for(const name of entry.names){
+        const nameTokens=voiceQueryTokens(name);
+        if(!nameTokens.length) continue;
+        let total=0, matched=0;
+        for(const qt of qTokens){
+          let local=0;
+          for(const nt of nameTokens){
+            local=Math.max(local, voiceWordSimilarity(qt,nt));
+          }
+          if(local>=0.55){matched++; total+=local;}
+        }
+        if(matched===qTokens.length) bestNameScore=Math.max(bestNameScore,total/qTokens.length);
+      }
+      if(bestNameScore>=0.62) fuzzy.push({item,slot:spokenSlot,score:520+bestNameScore*180,tier:variant.tier,enchant:variant.enchant});
+    }
+    candidates.push(...fuzzy);
   }
 
   const familyBest=new Map();
