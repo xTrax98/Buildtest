@@ -1040,6 +1040,7 @@ let voiceSearchRunning = false;
 let voicePendingTranscript = "";
 let voiceIndex = new Map();
 let voiceAlbionWords = [];
+let voiceWordIndex = new Map();
 const voiceSlotCache = new Map();
 
 function normalizeVoiceText(value){
@@ -1317,14 +1318,36 @@ function voiceNormalizeQueryWithAlbionWords(tokens){
   return tokens.map(token=>{
     if(!voiceAlbionWords.length || token.length<4) return token;
     let best=token, bestScore=0;
-    for(const known of voiceAlbionWords){
-      if(Math.abs(known.length-token.length)>4) continue;
-      const sc=voiceAlbionWordScore(token,known);
-      if(sc>bestScore){bestScore=sc;best=known;}
+    const bucketKeys=[];
+    for(let len=Math.max(3,token.length-2);len<=token.length+2;len++) bucketKeys.push(len);
+    const seen=new Set();
+    for(const len of bucketKeys){
+      const bucket=voiceWordIndex.get(`len:${len}`)||[];
+      for(const known of bucket){
+        if(seen.has(known)) continue;
+        seen.add(known);
+        const sc=voiceAlbionWordScore(token,known);
+        if(sc>bestScore){bestScore=sc;best=known;}
+      }
     }
-    // Only rewrite when the Albion vocabulary gives us a clear match.
     return bestScore>=0.72?best:token;
   });
+}
+
+function voiceCandidateEntries(slot,qTokens){
+  const pools=[];
+  const seen=new Set();
+  const addEntry=entry=>{ if(!entry || seen.has(entry.item.id)) return; seen.add(entry.item.id); pools.push(entry); };
+  const tokenList=qTokens.filter(t=>t.length>=2);
+  for(const token of tokenList){
+    const direct=voiceWordIndex.get(`${slot}|${token}`)||[];
+    direct.forEach(addEntry);
+  }
+  // If no exact/normalized token produced candidates, use the slot pool as a
+  // small fallback. This keeps generic aliases working without scanning every
+  // item for every segment.
+  if(!pools.length) return voiceIndex.get(slot)||[];
+  return pools;
 }
 
 function voiceCandidates(segment){
@@ -1338,20 +1361,19 @@ function voiceCandidates(segment){
 
   if(spokenSlot){
     const direct=voiceGenericCandidates(spokenSlot,qNorm,variant);
-    if(direct.length) candidates=direct.map(e=>({item:e.item,slot:e.slot,score:1800,tier:variant.tier,enchant:variant.enchant}));
+    if(direct.length) candidates.push(...direct.map(e=>({item:e.item,slot:e.slot,score:1800,tier:variant.tier,enchant:variant.enchant})));
 
-    // High-confidence family aliases (for example Thetford capes) are
-    // evaluated before the generic fuzzy matcher.
-    for(const entry of (voiceIndex.get(spokenSlot)||[])){
+    for(const entry of (voiceCandidateEntries(spokenSlot,qTokens))){
       if(variant.tier && parseItemVariant(entry.item.id).tier!==variant.tier) continue;
       const special=voiceSpecialCandidate(entry.item,spokenSlot,qNorm);
-      if(special>0) candidates.push({item:entry.item,slot:spokenSlot,score:special,tier:variant.tier,enchant:variant.enchant});
+      if(typeof special==='number' && special>0) candidates.push({item:entry.item,slot:spokenSlot,score:special,tier:variant.tier,enchant:variant.enchant});
     }
   }
 
   const slotsToSearch=spokenSlot?[spokenSlot]:Array.from(voiceIndex.keys());
   for(const slot of slotsToSearch){
-    for(const entry of (voiceIndex.get(slot)||[])){
+    const entries=voiceCandidateEntries(slot,qTokens);
+    for(const entry of entries){
       const item=entry.item;
       if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
       let best=0;
@@ -1385,41 +1407,13 @@ function voiceCandidates(segment){
     }
   }
 
-  if(!candidates.length && spokenSlot){
-    for(const slot of voiceIndex.keys()){
-      if(slot===spokenSlot) continue;
-      for(const entry of (voiceIndex.get(slot)||[])){
-        const item=entry.item;
-        if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
-        let best=0;
-        for(const name of entry.names){
-          const nTokens=voiceTokens(name);
-          if(!qTokens.length||!nTokens.length) continue;
-          let matched=0,fuzzy=0;
-          for(const qt of qTokens){
-            let ws=0;
-            for(const nt of nTokens){
-              if(nt===qt){ws=1;break;}
-              if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
-              else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
-            }
-            if(ws>=0.68){matched++;fuzzy+=ws;}
-          }
-          if(matched===qTokens.length) best=Math.max(best,100+fuzzy*30);
-        }
-        if(best) candidates.push({item,slot,score:best,tier:variant.tier,enchant:variant.enchant});
-      }
-    }
-  }
-
-  // Proper-name fallback: when the spoken name is close to a single item
-  // in the requested slot, prefer it even if SpeechRecognition distorted
-  // several letters (e.g. "marlow" -> "Martlock"). This is deliberately
-  // conservative: it only applies when one candidate is clearly ahead.
+  // General fuzzy fallback, but only over a narrowed candidate set. This is
+  // what lets ASR mistakes such as "marlow" -> "martlock" work without
+  // freezing the page by comparing every spoken token with every item.
   if(spokenSlot && qNorm){
-    const pool=voiceIndex.get(spokenSlot)||[];
     const fuzzy=[];
-    for(const entry of pool){
+    const entries=voiceCandidateEntries(spokenSlot,qTokens);
+    for(const entry of entries){
       const item=entry.item;
       if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
       let bestNameScore=0;
@@ -1429,19 +1423,11 @@ function voiceCandidates(segment){
         let total=0, matched=0;
         for(const qt of qTokens){
           let local=0;
-          for(const nt of nameTokens){
-            // Tolerancia general a pequeños errores de SpeechRecognition:
-            // "marlow" -> "martlock", "balon" -> "badon", etc.
-            local=Math.max(local, voiceWordSimilarity(qt,nt));
-          }
-          if(local>=0.60){matched++; total+=local;}
+          for(const nt of nameTokens) local=Math.max(local,voiceWordSimilarity(qt,nt));
+          if(local>=0.60){matched++;total+=local;}
         }
         if(matched===qTokens.length) bestNameScore=Math.max(bestNameScore,total/qTokens.length);
       }
-      // La similitud se aplica a TODOS los objetos, no a nombres concretos.
-      // Elevamos el umbral para evitar falsos positivos como "energia" -> "infernal",
-      // pero seguimos permitiendo errores foneticos claros como "marlow" -> "martlock"
-      // o "balon" -> "badon".
       if(bestNameScore>=0.64) fuzzy.push({item,slot:spokenSlot,score:560+bestNameScore*220,tier:variant.tier,enchant:variant.enchant});
     }
     candidates.push(...fuzzy);
@@ -1621,14 +1607,26 @@ function applyVoiceBuild(){
 function buildVoiceIndex(){
   voiceIndex=new Map([["head",[]],["armor",[]],["shoes",[]],["cape",[]],["bag",[]],["potion",[]],["food",[]],["offhand",[]],["mainhand",[]]]);
   voiceSlotCache.clear();
+  voiceWordIndex=new Map();
   const words=new Set();
+  const addWord=(key,entry)=>{
+    let arr=voiceWordIndex.get(key);
+    if(!arr){arr=[];voiceWordIndex.set(key,arr);}
+    arr.push(entry);
+  };
   for(const item of state.items){
     const slot=voiceSlotForItem(item);
     if(!slot || !voiceIndex.has(slot)) continue;
     const names=voiceItemNames(item);
-    voiceIndex.get(slot).push({item,slot,names});
+    const entry={item,slot,names};
+    voiceIndex.get(slot).push(entry);
     for(const name of names){
-      for(const w of voiceQueryTokens(name)) if(w.length>=4) words.add(w);
+      for(const w of voiceQueryTokens(name)){
+        if(w.length<3) continue;
+        words.add(w);
+        addWord(`${slot}|${w}`,entry);
+        addWord(`len:${w.length}`,w);
+      }
     }
   }
   voiceAlbionWords=[...words];
