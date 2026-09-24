@@ -20,7 +20,7 @@ const I18N = {
     newComposition:"Nueva composición", newZvZComposition:"Nueva composición ZvZ", compositionName:"Nombre de la composición", player:"Jugador", role:"Rol", preset:"Preset", addMember:"Añadir miembro", saveComposition:"Guardar composición", cancel:"Cancelar",
     compositionSaved:"Composición guardada: ", presetsCount:"presets", edit:"Editar", view:"Ver", backToCreator:"Volver al creador", saveNames:"Guardar nombres", zvzNamePlaceholder:"Nombre del jugador", zvzPreset:"Preset", zvzCompositionHelp:"Selecciona presets para tu composición ZvZ. Los nombres se ponen desde Ver.", compositionPreview:"Vista previa de la composición", players:"jugadores",
     load:"Cargar", duplicate:"Duplicar", delete:"Eliminar", saved:"Preset guardado: ",
-    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.", clearVoice:"Limpiar", voiceSearching:"Buscando objetos...", voiceCleared:"Texto de voz limpiado.",
+    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.", clearVoice:"Limpiar", voiceSearching:"Buscando objetos...", voiceCleared:"Texto de voz limpiado.", voiceProcess:"Buscar objetos", voiceReadyToProcess:"Texto capturado. Pulsa Buscar objetos.",
     allCategories:"Todas las categorías", loading:"Cargando objetos...", tier:"Tier",
     enchantment:"Encantamiento", quality:"Calidad", add:"Añadir al build",
     loadingData:"Cargando base de objetos de Albion...", dataReady:"Objetos cargados: ",
@@ -38,7 +38,7 @@ const I18N = {
     newComposition:"New composition", newZvZComposition:"New ZvZ composition", compositionName:"Composition name", player:"Player", role:"Role", preset:"Preset", addMember:"Add member", saveComposition:"Save composition", cancel:"Cancel",
     compositionSaved:"Composition saved: ", presetsCount:"presets", edit:"Edit", view:"View", backToCreator:"Back to creator", saveNames:"Save names", zvzNamePlaceholder:"Player name", zvzPreset:"Preset", zvzCompositionHelp:"Select presets for your ZvZ composition. Names are entered from View.", compositionPreview:"Composition preview", players:"players",
     load:"Load", duplicate:"Duplicate", delete:"Delete", saved:"Preset saved: ",
-    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.", clearVoice:"Clear", voiceSearching:"Searching items...", voiceCleared:"Voice text cleared.",
+    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.", clearVoice:"Clear", voiceSearching:"Searching items...", voiceCleared:"Voice text cleared.", voiceProcess:"Find objects", voiceReadyToProcess:"Text captured. Press Find objects.",
     allCategories:"All categories", loading:"Loading items...", tier:"Tier",
     enchantment:"Enchantment", quality:"Quality", add:"Add to build",
     loadingData:"Loading Albion item database...", dataReady:"Items loaded: ",
@@ -1035,6 +1035,8 @@ function renderBuild(){
 let voiceRecognition = null;
 let voiceResults = [];
 let voiceSearchRunning = false;
+let voicePendingTranscript = "";
+let voiceIndex = new Map();
 const voiceSlotCache = new Map();
 
 function normalizeVoiceText(value){
@@ -1191,15 +1193,15 @@ function voiceCandidates(segment){
   const qTokens=voiceTokens(query);
   let candidates=[];
 
-  // Cheap pre-filter: only inspect the slot requested by the user. This is
-  // much faster than running fuzzy matching over every item in items.json.
-  for(const item of state.items){
-    const itemSlot=voiceItemSlot(item);
-    if(!itemSlot) continue;
-    if(spokenSlot && itemSlot!==spokenSlot) continue;
+  // Search only the prebuilt voice index. This avoids scanning the full
+  // items.json and running matchesSlot() every time the user speaks.
+  const pools = spokenSlot ? (voiceIndex.get(spokenSlot)||[]) : Array.from(voiceIndex.values()).flat();
+  for(const entry of pools){
+    const item=entry.item;
+    const itemSlot=entry.slot;
     if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
 
-    const names=voiceItemNames(item);
+    const names=entry.names;
     let best=0;
     for(const name of names){
       const nTokens=voiceTokens(name);
@@ -1326,17 +1328,10 @@ function startVoiceRecognition(){
   voiceRecognition.onend=()=>{
     $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
     voiceRecognition=null;
-    const transcript=$("#voiceTranscript")?.textContent?.trim()||"";
-    if(transcript && transcript!==t("voiceNoMatch") && transcript!==t("voiceReady")) {
-      voiceSearchRunning=true;
-      $("#voiceStatus").textContent=t("voiceSearching");
-      setTimeout(()=>{
-        voiceResults=parseVoiceBuild(transcript);
-        renderVoiceMatches(voiceResults);
-        $("#applyVoice").disabled=!voiceResults.parsed.length;
-        voiceSearchRunning=false;
-        $("#voiceStatus").textContent=voiceResults.parsed.length?t("voiceFound"):t("voiceNoMatch");
-      },0);
+    voicePendingTranscript=$("#voiceTranscript")?.textContent?.trim()||"";
+    if(voicePendingTranscript && voicePendingTranscript!==t("voiceNoMatch") && voicePendingTranscript!==t("voiceReady")) {
+      $("#voiceStatus").textContent=t("voiceReadyToProcess");
+      $("#processVoice").disabled=false;
     }
   };
   try{
@@ -1348,12 +1343,29 @@ function startVoiceRecognition(){
   }
 }
 
+function processVoiceBuild(){
+  const transcript=voicePendingTranscript || $("#voiceTranscript")?.textContent?.trim() || "";
+  if(!transcript || transcript===t("voiceReady")) return;
+  voiceSearchRunning=true;
+  $("#processVoice").disabled=true;
+  $("#voiceStatus").textContent=t("voiceSearching");
+  setTimeout(()=>{
+    voiceResults=parseVoiceBuild(transcript);
+    renderVoiceMatches(voiceResults);
+    $("#applyVoice").disabled=!voiceResults.parsed.length;
+    voiceSearchRunning=false;
+    $("#voiceStatus").textContent=voiceResults.parsed.length?t("voiceFound"):t("voiceNoMatch");
+  },0);
+}
+
 function clearVoiceBuild(){
   if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
   voiceResults=[];
+  voicePendingTranscript="";
   $("#voiceTranscript").textContent=t("voiceReady");
   $("#voiceMatches").innerHTML="";
   $("#applyVoice").disabled=true;
+  $("#processVoice").disabled=true;
   $("#voiceStatus").textContent=t("voiceCleared");
 }
 
@@ -1365,6 +1377,16 @@ function applyVoiceBuild(){
   }
   clearInvalidOffhand(); renderBuild(); $("#voiceStatus").textContent=t("voiceApplied");
   $("#voiceBuildPanel").classList.add("hidden");
+}
+
+function buildVoiceIndex(){
+  voiceIndex=new Map([["head",[]],["armor",[]],["shoes",[]],["cape",[]],["bag",[]],["potion",[]],["food",[]],["offhand",[]],["mainhand",[]]]);
+  voiceSlotCache.clear();
+  for(const item of state.items){
+    const slot=voiceSlotForItem(item);
+    if(!slot || !voiceIndex.has(slot)) continue;
+    voiceIndex.get(slot).push({item,slot,names:voiceItemNames(item)});
+  }
 }
 
 async function loadItems(){
@@ -1387,6 +1409,7 @@ async function loadItems(){
     state.items = normalize(fallbackItems());
     $("#status").textContent = `${t("loadingData")} (modo demo)`;
   }
+  buildVoiceIndex();
   fillCategories();
   filter();
   applyI18n();
@@ -1440,6 +1463,7 @@ $("#voiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.
 $("#closeVoiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.add("hidden");});
 $("#startVoice")?.addEventListener("click",()=>{ if(voiceRecognition){try{voiceRecognition.stop();}catch{}} else startVoiceRecognition(); });
 $("#clearVoice")?.addEventListener("click",clearVoiceBuild);
+$("#processVoice")?.addEventListener("click",processVoiceBuild);
 $("#applyVoice")?.addEventListener("click",applyVoiceBuild);
 
 syncWeaponSlots();
