@@ -1143,6 +1143,14 @@ function voiceCandidates(segment){
     if(s==="offhand" && !canUseOffhand()) continue;
     for(const item of state.items){
       if(!matchesSlot(item,s)) continue;
+      // If the user explicitly said a tier, only compare against that tier.
+      // The dump contains the same item family once per tier; without this
+      // restriction T4/T5/T6... all score equally and the result is marked
+      // ambiguous even when the spoken name is exact.
+      if(variant.tier){
+        const itemTier=parseItemVariant(item.id).tier;
+        if(itemTier!==variant.tier) continue;
+      }
       const names=voiceItemNames(item);
       let bestNameScore=0;
       for(const name of names){
