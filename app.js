@@ -1105,8 +1105,17 @@ function voiceCanonicalSegment(segment){
   s=s.replace(/\btapa\b/g,"capa");
   s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
   s=s.replace(/\b(?:marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/g,"martlock");
-  // Atajos de voz para ciudades/facciones de capas: "Lym" debe resolver directamente a Lymhurst.
-  s=s.replace(/\b(?:lym|lim|lym hurst|lynhurst|lynhur)\b/g,"lymhurst");
+  // Atajos de voz para ciudades/facciones de capas. Chrome puede deformar
+  // Lymhurst de muchas maneras (lym, lyn, link, lynk, ninjurse, etc.).
+  // Solo aplicamos estos alias cuando el segmento es una capa, para no
+  // convertir palabras normales de otros objetos en Lymhurst.
+  if(/\b(?:capa|cape)\b/.test(s)){
+    s=s.replace(/\b(?:lym|lim|lym\s+hurst|lynhurst|lynhur|lyn|link|lynk|ninjurse|ninjurs|lymhurst)\b/g,"lymhurst");
+    // Variantes habituales que el reconocimiento de voz produce para las capas.
+    s=s.replace(/\b(?:brazilia|brasilia|brecilia|brecilien)\b/g,"brecilien");
+    s=s.replace(/\b(?:brit\s*watch|britwatch|brid\s*watch|bridwatch|bridge\s*watch|bridgewatch|brid)\b/g,"bridgewatch");
+    s=s.replace(/\b(?:muerto\s+vivo|muerto\s+viviente|muerto\s+viviente)\b/g,"muerto viviente");
+  }
   if(/\btallada\b/.test(s) && !/\bespada\b/.test(s)) s=s.replace(/\btallada\b/,"espada tallada");
   s=s.replace(/\bcomida\s+guiso\b/g,"guiso");
   s=s.replace(/\bbolsa\s+de\s+soldado\b/g,"botas de soldado");
