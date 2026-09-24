@@ -1,3 +1,3 @@
-Albion Build Creator 0.3.103 TEST
+Albion Build Creator 0.3.104 TEST
 
-Mejora de exportación de composiciones a imagen para Discord: genera el PNG directamente con Canvas para evitar recortes y problemas con iconos externos.
+Mejora de generación de imágenes para Discord: carga CORS segura de iconos de objetos.

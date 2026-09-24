@@ -347,16 +347,28 @@ function saveZvZEditor(){
 
 function deleteZvZ(id){if(viewedZvZCompositionId===id)hideCompositionPreview();saveZvZCompositions(getZvZCompositions().filter(x=>x.id!==id));renderZvZCompositions();}
 
-function loadCanvasImage(src){
-  return new Promise((resolve,reject)=>{
+async function loadCanvasImage(src){
+  // Albion Render puede servir el icono en la página, pero el canvas necesita CORS.
+  // Probamos la URL original y, si no permite exportación desde canvas, usamos
+  // un proxy de imágenes con CORS únicamente para crear el PNG de Discord.
+  const direct = await new Promise((resolve)=>{
     const img=new Image();
     img.crossOrigin="anonymous";
     img.onload=()=>resolve(img);
-    img.onerror=()=>reject(new Error("No se pudo cargar la imagen: "+src));
+    img.onerror=()=>resolve(null);
     img.src=src;
   });
-}
+  if(direct && direct.naturalWidth>0) return direct;
 
+  const proxy=`https://images.weserv.nl/?url=${encodeURIComponent(src)}`;
+  return await new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>img.naturalWidth>0 ? resolve(img) : reject(new Error("Imagen vacía"));
+    img.onerror=()=>reject(new Error("No se pudo cargar el icono"));
+    img.src=proxy;
+  });
+}
 function roundRect(ctx,x,y,w,h,r){
   const rr=Math.min(r,w/2,h/2);
   ctx.beginPath();
@@ -422,7 +434,8 @@ async function createDiscordCanvas(){
 
     const imgs=[...row.querySelectorAll(".composition-icon img")];
     const loaded=await Promise.all(imgs.slice(0,maxIcons).map(async imgEl=>{
-      try{return await loadCanvasImage(imgEl.currentSrc||imgEl.src);}catch{return null;}
+      try{return await loadCanvasImage(imgEl.currentSrc||imgEl.src);}
+      catch(err){console.warn("Icono no disponible para la imagen de Discord:", imgEl.alt, err); return null;}
     }));
     for(let j=0;j<loaded.length;j++){
       const x=startX+j*(iconSize+iconGap), iy=y+(rowH-10-iconSize)/2;
