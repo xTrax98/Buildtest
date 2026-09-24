@@ -1099,7 +1099,10 @@ function voiceSegments(transcript){
   const text=normalizeVoiceText(transcript)
     .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y)\b/g," ")
     .replace(/\s+/g," ").trim();
-  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|gigantismo|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|tallada|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  // Only words that can start a new slot are boundaries. Do not use words
+  // such as "gigantismo" or "tallada" as boundaries: they are item names
+  // and would split "poción de gigantismo" / "espada tallada" in half.
+  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
   const matches=[...text.matchAll(marker)];
   if(!matches.length) return text?[text]:[];
   const out=[];
@@ -1111,7 +1114,6 @@ function voiceSegments(transcript){
   }
   return out;
 }
-
 function voiceWordSimilarity(a,b){
   a=normalizeVoiceText(a); b=normalizeVoiceText(b);
   if(a===b) return 1;
@@ -1148,10 +1150,13 @@ function voiceSlotForItem(item){
 function voiceQueryTokens(text){
   return normalizeVoiceText(text)
     .replace(/\b(?:quiero|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|una|un|la|el|las|los|de|del|con|y|and|a|an|the|of)\b/g," ")
+    // Slot words are useful for deciding where an item belongs, but they are
+    // not always present in Albion's localized item name (e.g. "capucha de
+    // clérigo" may be named "Hábito de clérigo" in the data).
+    .replace(/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|sandalia|sandalias|botas|zapatos|shoes|boots|arma|armas|weapon|espada|espadas|sword|swords|daga|dagas|dagger|daggers|hacha|hachas|axe|axes|maza|mazas|mace|maces|martillo|martillos|hammer|hammers|lanza|lanzas|spear|spears|arco|arcos|bow|bows|ballesta|ballestas|crossbow|crossbows|baston|bastones|staff|staffs|guante|guantes|glove|gloves|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb)\b/g," ")
     .split(/\s+/).filter(Boolean)
     .filter(t=>t.length>1 && !/^\d+$/.test(t));
 }
-
 function voiceItemSlot(item){
   const id=String(item?.id||"");
   if(voiceSlotCache.has(id)) return voiceSlotCache.get(id);
@@ -1173,18 +1178,18 @@ function voiceFamilyKey(item,slot){
 
 function voiceSpecialCandidate(item,slot,qNorm){
   const name=normalizeVoiceText(getName(item));
+  const rest=equipmentBaseId(item).replace(/^T\d+_/i,"");
   if(slot==="bag" && (qNorm==="bolsa" || qNorm==="bag")){
-    return /^(bolsa|bag)$/.test(name) ? 1000 : 0;
+    return (rest==="BAG" || /^(bolsa|bag)$/.test(name)) ? 1600 : 0;
   }
   if(slot==="food" && qNorm==="guiso"){
-    return /\bguiso de ternera\b/.test(name) ? 1200 : 0;
+    return (/\bguiso de ternera\b/.test(name) || /^MEAL_STEW(?:$|_)/i.test(rest)) && !/avalon/i.test(name+" "+rest) ? 1600 : 0;
   }
   if(slot==="food" && /\bguiso avalonico\b/.test(qNorm)){
-    return /\bguiso avalonico\b/.test(name) ? 1200 : 0;
+    return /\bguiso avalonico\b/.test(name) || /STEW.*AVALON/i.test(rest) ? 1600 : 0;
   }
   return 0;
 }
-
 function voiceCandidates(segment){
   const spokenSlot=voiceSlotFromText(segment);
   const variant=voiceVariant(segment);
@@ -1276,7 +1281,7 @@ function parseVoiceBuild(transcript){
     const best=candidates[0], second=candidates[1];
     const bestName=normalizeVoiceText(getName(best.item));
     const secondName=second?normalizeVoiceText(getName(second.item)):"";
-    if(second && best.score-second.score<12 && bestName!==secondName){ambiguous.push(segment);continue;}
+    if(second && best.score<700 && best.score-second.score<12 && bestName!==secondName){ambiguous.push(segment);continue;}
     const tier=best.tier||parseItemVariant(best.item.id).tier;
     parsed.push({segment,slot:best.slot,item:best.item,tier,enchant:best.enchant||0,quality:1});
   }
