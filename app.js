@@ -1153,7 +1153,7 @@ function voiceCandidates(segment){
   const variant=voiceVariant(segment);
   const query=voiceCleanName(segment);
   const qTokens=voiceQueryTokens(query);
-  const candidates=[];
+  let candidates=[];
 
   for(const item of state.items){
     const itemSlot=voiceSlotForItem(item);
