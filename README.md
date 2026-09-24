@@ -1,16 +1,12 @@
-Albion Build Creator 0.3.45 — prueba experimental de creación de builds por voz. Requiere un navegador con Web Speech API (Chrome/Edge) y permiso de micrófono.
-0.3.44: Replaced the guild mark background with a transparent version of the supplied Butaneros Avalonicos logo and enlarged the header mark slightly.
+# Albion Build Creator 0.3.60 — TEST
 
-## 0.3.40
-- Background fixed to the viewport so the Butaneros gradient stays static while scrolling.
+Experimental voice build parser.
 
-Albion Build Creator 0.3.39
-
-Base: 0.3.37.
-
-Change in 0.3.39: the left Biblioteca/Presets panel in composition and ZvZ preview now uses the same fixed width as the normal creator at each desktop breakpoint, instead of shrinking when Ver is pressed. The three-dot menus and all other 0.3.37 behavior are preserved.
-
-
-0.3.42: Adjusted composition and ZvZ preview rows so all 9 build slots fit in the fixed-width center panel without being clipped.
-
-0.3.43: Replaced the header gas-cylinder guild mark with the supplied Butaneros Avalonicos logo.
+Changes:
+- Captures the voice transcript first and searches only after recognition ends.
+- Faster item matching with slot pre-filtering and cheap exact-token matching before fuzzy matching.
+- Added Clear voice text button.
+- Generic "Bolsa" prefers the generic Bolsa item and then selects its maximum tier.
+- Generic "Guiso" resolves to Guiso de ternera at maximum tier; "Guiso avalonico" remains specific.
+- If no tier is spoken, the parser selects the highest available tier for the matched family.
+- Explicit tiers remain supported.

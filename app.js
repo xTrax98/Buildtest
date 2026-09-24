@@ -20,7 +20,7 @@ const I18N = {
     newComposition:"Nueva composición", newZvZComposition:"Nueva composición ZvZ", compositionName:"Nombre de la composición", player:"Jugador", role:"Rol", preset:"Preset", addMember:"Añadir miembro", saveComposition:"Guardar composición", cancel:"Cancelar",
     compositionSaved:"Composición guardada: ", presetsCount:"presets", edit:"Editar", view:"Ver", backToCreator:"Volver al creador", saveNames:"Guardar nombres", zvzNamePlaceholder:"Nombre del jugador", zvzPreset:"Preset", zvzCompositionHelp:"Selecciona presets para tu composición ZvZ. Los nombres se ponen desde Ver.", compositionPreview:"Vista previa de la composición", players:"jugadores",
     load:"Cargar", duplicate:"Duplicar", delete:"Eliminar", saved:"Preset guardado: ",
-    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.",
+    voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.", clearVoice:"Limpiar", voiceSearching:"Buscando objetos...", voiceCleared:"Texto de voz limpiado.",
     allCategories:"Todas las categorías", loading:"Cargando objetos...", tier:"Tier",
     enchantment:"Encantamiento", quality:"Calidad", add:"Añadir al build",
     loadingData:"Cargando base de objetos de Albion...", dataReady:"Objetos cargados: ",
@@ -38,7 +38,7 @@ const I18N = {
     newComposition:"New composition", newZvZComposition:"New ZvZ composition", compositionName:"Composition name", player:"Player", role:"Role", preset:"Preset", addMember:"Add member", saveComposition:"Save composition", cancel:"Cancel",
     compositionSaved:"Composition saved: ", presetsCount:"presets", edit:"Edit", view:"View", backToCreator:"Back to creator", saveNames:"Save names", zvzNamePlaceholder:"Player name", zvzPreset:"Preset", zvzCompositionHelp:"Select presets for your ZvZ composition. Names are entered from View.", compositionPreview:"Composition preview", players:"players",
     load:"Load", duplicate:"Duplicate", delete:"Delete", saved:"Preset saved: ",
-    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.",
+    voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.", clearVoice:"Clear", voiceSearching:"Searching items...", voiceCleared:"Voice text cleared.",
     allCategories:"All categories", loading:"Loading items...", tier:"Tier",
     enchantment:"Enchantment", quality:"Quality", add:"Add to build",
     loadingData:"Loading Albion item database...", dataReady:"Items loaded: ",
@@ -1034,6 +1034,8 @@ function renderBuild(){
 
 let voiceRecognition = null;
 let voiceResults = [];
+let voiceSearchRunning = false;
+const voiceSlotCache = new Map();
 
 function normalizeVoiceText(value){
   return String(value||"")
@@ -1148,85 +1150,119 @@ function voiceQueryTokens(text){
     .filter(t=>t.length>1 && !/^\d+$/.test(t));
 }
 
+function voiceItemSlot(item){
+  const id=String(item?.id||"");
+  if(voiceSlotCache.has(id)) return voiceSlotCache.get(id);
+  const slot=voiceSlotForItem(item);
+  voiceSlotCache.set(id,slot);
+  return slot;
+}
+
+function voiceTokens(text){
+  return voiceQueryTokens(text).filter(Boolean);
+}
+
+function voiceFamilyKey(item,slot){
+  const id=equipmentBaseId(item).replace(/^T\d+_/i,"");
+  // For bags/food/potions we want the actual named family, not merely the
+  // category, so different bag types do not collapse into one result.
+  return `${slot}|${id}`;
+}
+
+function voiceSpecialCandidate(item,slot,qNorm){
+  const name=normalizeVoiceText(getName(item));
+  if(slot==="bag" && (qNorm==="bolsa" || qNorm==="bag")){
+    return /^(bolsa|bag)$/.test(name) ? 1000 : 0;
+  }
+  if(slot==="food" && qNorm==="guiso"){
+    return /\bguiso de ternera\b/.test(name) ? 1200 : 0;
+  }
+  if(slot==="food" && /\bguiso avalonico\b/.test(qNorm)){
+    return /\bguiso avalonico\b/.test(name) ? 1200 : 0;
+  }
+  return 0;
+}
+
 function voiceCandidates(segment){
   const spokenSlot=voiceSlotFromText(segment);
   const variant=voiceVariant(segment);
   const query=voiceCleanName(segment);
-  const qTokens=voiceQueryTokens(query);
+  const qNorm=normalizeVoiceText(query);
+  const qTokens=voiceTokens(query);
   let candidates=[];
 
+  // Cheap pre-filter: only inspect the slot requested by the user. This is
+  // much faster than running fuzzy matching over every item in items.json.
   for(const item of state.items){
-    const itemSlot=voiceSlotForItem(item);
+    const itemSlot=voiceItemSlot(item);
     if(!itemSlot) continue;
     if(spokenSlot && itemSlot!==spokenSlot) continue;
-    if(itemSlot==="offhand" && !canUseOffhand()) continue;
-
-    // Si el usuario dice un tier, lo respetamos. Si no lo dice,
-    // NO le obligamos a decir T8/T7: más abajo elegimos automáticamente
-    // el tier máximo disponible de esa familia de objeto.
-    if(variant.tier){
-      const itemTier=parseItemVariant(item.id).tier;
-      if(itemTier!==variant.tier) continue;
-    }
+    if(variant.tier && parseItemVariant(item.id).tier!==variant.tier) continue;
 
     const names=voiceItemNames(item);
     let best=0;
     for(const name of names){
-      const nTokens=voiceQueryTokens(name);
+      const nTokens=voiceTokens(name);
       if(!nTokens.length || !qTokens.length) continue;
-      let matched=0, score=0;
-      for(const qt of qTokens){
-        let ws=0;
-        for(const nt of nTokens){
-          ws=Math.max(ws,voiceWordSimilarity(qt,nt));
-          if(normalizeVoiceText(nt).startsWith(normalizeVoiceText(qt)) || normalizeVoiceText(qt).startsWith(normalizeVoiceText(nt))) ws=Math.max(ws,0.92);
+
+      // Exact token coverage first. This is the normal path and avoids the
+      // expensive edit-distance calculation for unrelated objects.
+      const exactMatched=qTokens.filter(qt=>nTokens.includes(qt)).length;
+      const exactCoverage=exactMatched/qTokens.length;
+      let score=0;
+      if(exactCoverage===1) score=250 + qTokens.length*45;
+
+      // Only use fuzzy comparison when at least one token is already close.
+      if(score===0){
+        let matched=0, fuzzy=0;
+        for(const qt of qTokens){
+          let ws=0;
+          for(const nt of nTokens){
+            if(nt===qt){ws=1;break;}
+            if(nt.startsWith(qt)||qt.startsWith(nt)) ws=Math.max(ws,0.92);
+            else if(Math.min(nt.length,qt.length)>=4) ws=Math.max(ws,voiceWordSimilarity(qt,nt));
+          }
+          if(ws>=0.72){matched++;fuzzy+=ws;}
         }
-        if(ws>=0.45){matched++; score+=ws;}
-      }
-      const coverage=matched/qTokens.length;
-      // Todas las palabras relevantes deben estar presentes. Esto evita, por
-      // ejemplo, confundir "capucha de erudito" con "hábito de erudito".
-      if(qTokens.length > 1 && coverage < 0.999) continue;
-      score=score*25 + coverage*70;
-      const nq=normalizeVoiceText(name);
-      const qq=normalizeVoiceText(query);
-      if(nq===qq) score+=400;
-      else if(qq && nq.includes(qq)) score+=220;
-      // Coincidencia por tokens exactos: muy importante para comida, bolsas
-      // y otros nombres compuestos.
-      if(qTokens.every(qt=>nTokens.includes(qt))) score+=300;
-
-      // Atajos naturales para alimentos: "guiso" sin más detalles significa
-      // Guiso de ternera; si se dice "guiso avalonico" se mantiene esa
-      // coincidencia específica.
-      if(itemSlot==="food") {
-        const nqNorm=normalizeVoiceText(name);
-        const qNorm=normalizeVoiceText(query);
-        if(qNorm==="guiso" && /\bguiso de ternera\b/.test(nqNorm)) score+=650;
-        if(qNorm.includes("guiso avalonico") && /\bguiso avalonico\b/.test(nqNorm)) score+=650;
+        const coverage=matched/qTokens.length;
+        if(coverage===1) score=120+fuzzy*35;
       }
 
-      best=Math.max(best,score);
+      const special=voiceSpecialCandidate(item,itemSlot,qNorm);
+      if(special) score=Math.max(score,special);
+
+      if(score>0){
+        const nq=normalizeVoiceText(name);
+        if(nq===qNorm) score+=500;
+        else if(qNorm && nq.includes(qNorm)) score+=260;
+        best=Math.max(best,score);
+      }
     }
-    if(best>35) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
+    if(best>0) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
   }
 
-  // Si no se dijo tier, elegimos automáticamente el mayor tier disponible
-  // para cada familia. Así "Espada tallada" -> T8, mientras que
-  // "Poción de gigantismo" -> T7 si ese es su máximo real.
+  // If no tier was spoken, choose the highest tier for the matched family.
+  // Generic "bolsa" is a special case: prefer the actual generic Bolsa item,
+  // not Bolsa del obrero or another named bag.
+  if(!variant.tier && (qNorm==="bolsa" || qNorm==="bag")){
+    const generic=candidates.filter(c=>/^(bolsa|bag)$/i.test(normalizeVoiceText(getName(c.item))));
+    if(generic.length) candidates=generic;
+  }
+
   const familyBest=new Map();
   for(const c of candidates){
-    const rawFamily=equipmentBaseId(c.item);
-    const key=c.slot+"|"+rawFamily.replace(/^T\d+_/i,"");
-    const current=familyBest.get(key);
+    const key=voiceFamilyKey(c.item,c.slot);
     const tier=parseItemVariant(c.item.id).tier||0;
-    if(!current || (tier>(parseItemVariant(current.item.id).tier||0)) ||
-       (tier===(parseItemVariant(current.item.id).tier||0) && c.score>current.score)){
-      familyBest.set(key,c);
-    }
+    const current=familyBest.get(key);
+    if(!current || tier>(parseItemVariant(current.item.id).tier||0) ||
+       (tier===(parseItemVariant(current.item.id).tier||0) && c.score>current.score)) familyBest.set(key,c);
   }
   candidates=[...familyBest.values()];
-  candidates.sort((a,b)=>b.score-a.score);
+  candidates.sort((a,b)=>{
+    const ta=parseItemVariant(a.item.id).tier||0, tb=parseItemVariant(b.item.id).tier||0;
+    if(!variant.tier && ta!==tb) return tb-ta;
+    return b.score-a.score;
+  });
   return candidates.slice(0,12);
 }
 
@@ -1235,12 +1271,12 @@ function parseVoiceBuild(transcript){
   for(const segment of voiceSegments(transcript)){
     const candidates=voiceCandidates(segment);
     if(!candidates.length){ambiguous.push(segment);continue;}
-    const best=candidates[0];
-    const second=candidates[1];
+    const best=candidates[0], second=candidates[1];
     const bestName=normalizeVoiceText(getName(best.item));
     const secondName=second?normalizeVoiceText(getName(second.item)):"";
-    if(second && best.score-second.score<5 && bestName!==secondName){ambiguous.push(segment);continue;}
-    parsed.push({segment,slot:best.slot,item:best.item,tier:best.tier||parseItemVariant(best.item.id).tier,enchant:best.enchant||0,quality:1});
+    if(second && best.score-second.score<12 && bestName!==secondName){ambiguous.push(segment);continue;}
+    const tier=best.tier||parseItemVariant(best.item.id).tier;
+    parsed.push({segment,slot:best.slot,item:best.item,tier,enchant:best.enchant||0,quality:1});
   }
   return {parsed,ambiguous};
 }
@@ -1270,11 +1306,8 @@ function startVoiceRecognition(){
   voiceRecognition.onresult=e=>{
     const transcript=Array.from(e.results).map(r=>r[0].transcript).join(" ").trim();
     $("#voiceTranscript").textContent=transcript||t("voiceNoMatch");
-    if(transcript){
-      voiceResults=parseVoiceBuild(transcript);
-      renderVoiceMatches(voiceResults);
-      $("#applyVoice").disabled=!voiceResults.parsed.length;
-    }
+    // Do not search while the browser is still delivering audio. We only
+    // capture the final transcript here; parsing happens once onend.
   };
   voiceRecognition.onnomatch=()=>{
     $("#voiceStatus").textContent=t("voiceNoMatch");
@@ -1293,6 +1326,18 @@ function startVoiceRecognition(){
   voiceRecognition.onend=()=>{
     $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
     voiceRecognition=null;
+    const transcript=$("#voiceTranscript")?.textContent?.trim()||"";
+    if(transcript && transcript!==t("voiceNoMatch") && transcript!==t("voiceReady")) {
+      voiceSearchRunning=true;
+      $("#voiceStatus").textContent=t("voiceSearching");
+      setTimeout(()=>{
+        voiceResults=parseVoiceBuild(transcript);
+        renderVoiceMatches(voiceResults);
+        $("#applyVoice").disabled=!voiceResults.parsed.length;
+        voiceSearchRunning=false;
+        $("#voiceStatus").textContent=voiceResults.parsed.length?t("voiceFound"):t("voiceNoMatch");
+      },0);
+    }
   };
   try{
     voiceRecognition.start();
@@ -1301,6 +1346,15 @@ function startVoiceRecognition(){
     $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
     voiceRecognition=null;
   }
+}
+
+function clearVoiceBuild(){
+  if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
+  voiceResults=[];
+  $("#voiceTranscript").textContent=t("voiceReady");
+  $("#voiceMatches").innerHTML="";
+  $("#applyVoice").disabled=true;
+  $("#voiceStatus").textContent=t("voiceCleared");
 }
 
 function applyVoiceBuild(){
@@ -1385,6 +1439,7 @@ $("#importFile")?.addEventListener("change",e=>{ importAllData(e.target.files?.[
 $("#voiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.toggle("hidden");});
 $("#closeVoiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.add("hidden");});
 $("#startVoice")?.addEventListener("click",()=>{ if(voiceRecognition){try{voiceRecognition.stop();}catch{}} else startVoiceRecognition(); });
+$("#clearVoice")?.addEventListener("click",clearVoiceBuild);
 $("#applyVoice")?.addEventListener("click",applyVoiceBuild);
 
 syncWeaponSlots();
