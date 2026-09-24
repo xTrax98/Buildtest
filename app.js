@@ -1071,21 +1071,46 @@ function voiceCleanName(text){
 function voiceSlotFromText(text){
   const s=normalizeVoiceText(text);
   if(/\b(capa|capas|cape)\b/.test(s)) return "cape";
-  if(/\b(bolsa|bolsas|bag)\b/.test(s)) return "bag";
+  if(/\b(bolsa|bolsas|bag|bags)\b/.test(s)) return "bag";
   if(/\b(pocion|pociones|potion|potions)\b/.test(s)) return "potion";
-  if(/\b(guiso|comida|comidas|food)\b/.test(s)) return "food";
-  if(/\b(sandalia|sandalias|botas|zapatos|shoes)\b/.test(s)) return "shoes";
-  if(/\b(capucha|casco|cascos|helmet|helmets)\b/.test(s)) return "head";
-  if(/\b(armadura|pecho|chaqueta|robe|armor|armadura)\b/.test(s)) return "armor";
-  if(/\b(secundaria|secundario|escudo|tomo|antorcha|orbe|offhand)\b/.test(s)) return "offhand";
+  if(/\b(guiso|comida|comidas|estofado|food|stew)\b/.test(s)) return "food";
+  if(/\b(sandalia|sandalias|botas|zapatos|shoes|boots)\b/.test(s)) return "shoes";
+  if(/\b(capucha|casco|cascos|cabeza|helmet|helmets|hood|head)\b/.test(s)) return "head";
+  if(/\b(armadura|pecho|chaqueta|túnica|tunica|robe|armor|armour|chest|jacket)\b/.test(s)) return "armor";
+  if(/\b(secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb)\b/.test(s)) return "offhand";
+  if(/\b(arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/.test(s)) return "mainhand";
   return null;
 }
 
 function voiceSegments(transcript){
-  let text=normalizeVoiceText(transcript)
-    .replace(/\s+y\s+/g, ", ")
-    .replace(/\s+con\s+(?=(?:capa|bolsa|pocion|pociones|guiso|comida|capucha|casco|armadura|pecho|sandalias|botas)\b)/g, ", ");
-  return text.split(/[;,]+/).map(x=>x.trim()).filter(Boolean);
+  const text=normalizeVoiceText(transcript)
+    .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además)\b/g," ")
+    .replace(/\s+/g," ").trim();
+  const marker=/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|túnica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  const matches=[...text.matchAll(marker)];
+  if(!matches.length) return text?[text]:[];
+  const out=[];
+  for(let i=0;i<matches.length;i++){
+    const a=matches[i].index;
+    const b=i+1<matches.length?matches[i+1].index:text.length;
+    const part=text.slice(a,b).trim();
+    if(part) out.push(part);
+  }
+  return out;
+}
+
+function voiceWordSimilarity(a,b){
+  a=normalizeVoiceText(a); b=normalizeVoiceText(b);
+  if(a===b) return 1;
+  const m=a.length,n=b.length;
+  if(!m||!n) return 0;
+  const prev=new Array(n+1); for(let j=0;j<=n;j++) prev[j]=j;
+  for(let i=1;i<=m;i++){
+    const cur=new Array(n+1); cur[0]=i;
+    for(let j=1;j<=n;j++) cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    for(let j=0;j<=n;j++) prev[j]=cur[j];
+  }
+  return 1-prev[n]/Math.max(m,n);
 }
 
 function voiceCandidates(segment){
@@ -1093,21 +1118,26 @@ function voiceCandidates(segment){
   const query=voiceCleanName(segment);
   const variant=voiceVariant(segment);
   const slots=slot?[slot]:["mainhand","offhand","head","armor","shoes","cape","bag","potion","food"];
+  const qTokens=query.split(/\s+/).filter(t=>t.length>1);
   const candidates=[];
   for(const s of slots){
     if(s==="offhand" && !canUseOffhand()) continue;
     for(const item of state.items){
       if(!matchesSlot(item,s)) continue;
       const name=normalizeVoiceText(getName(item));
-      const tokens=query.split(/\s+/).filter(t=>t.length>1);
+      const nameTokens=name.split(/\s+/).filter(t=>t.length>1);
       let score=0;
+      let matched=0;
+      for(const qt of qTokens){
+        let best=0;
+        for(const nt of nameTokens) best=Math.max(best,voiceWordSimilarity(qt,nt));
+        if(best>=0.72){matched++; score+=best*12;}
+      }
+      if(qTokens.length && matched===qTokens.length) score+=45;
       if(query && name===query) score+=100;
       if(query && name.includes(query)) score+=70;
-      const matched=tokens.filter(tok=>name.includes(tok)).length;
-      score+=matched*10;
-      if(tokens.length && matched===tokens.length) score+=25;
-      if(!query) score=1;
-      if(score>0) candidates.push({item,slot: s,score,tier:variant.tier,enchant:variant.enchant});
+      if(!qTokens.length) score=1;
+      if(score>0) candidates.push({item,slot:s,score,tier:variant.tier,enchant:variant.enchant});
     }
   }
   candidates.sort((a,b)=>b.score-a.score);
@@ -1122,7 +1152,7 @@ function parseVoiceBuild(transcript){
     if(!candidates.length){ambiguous.push(segment);continue;}
     const best=candidates[0];
     const second=candidates[1];
-    if(second && best.score-second.score<12){ambiguous.push(segment);continue;}
+    if(second && best.score-second.score<8){ambiguous.push(segment);continue;}
     parsed.push({segment,slot:best.slot,item:best.item,tier:best.tier||parseItemVariant(best.item.id).tier,enchant:best.enchant||0,quality:1});
   }
   return {parsed,ambiguous};
