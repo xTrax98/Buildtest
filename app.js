@@ -1081,13 +1081,13 @@ function voiceSlotFromText(text){
   const s=normalizeVoiceText(text);
   if(/\b(capa|capas|tapa|cape)\b/.test(s)) return "cape";
   if(/\b(bolsa|bolsas|bag|bags)\b/.test(s)) return "bag";
-  if(/\b(pocion|pociones|potion|potions)\b/.test(s)) return "potion";
+  if(/\b(pocion|pociones|potion|potions|gigantismo)\b/.test(s)) return "potion";
   if(/\b(guiso|comida|comidas|estofado|food|stew)\b/.test(s)) return "food";
   if(/\b(sandalia|sandalias|botas|zapatos|shoes|boots)\b/.test(s)) return "shoes";
   if(/\b(capucha|casco|cascos|cabeza|helmet|helmets|hood|head)\b/.test(s)) return "head";
   if(/\b(armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket)\b/.test(s)) return "armor";
   if(/\b(secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb)\b/.test(s)) return "offhand";
-  if(/\b(arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/.test(s)) return "mainhand";
+  if(/\b(arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|tallada|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/.test(s)) return "mainhand";
   return null;
 }
 
@@ -1095,7 +1095,7 @@ function voiceSegments(transcript){
   const text=normalizeVoiceText(transcript)
     .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y)\b/g," ")
     .replace(/\s+/g," ").trim();
-  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|gigantismo|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|tallada|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
   const matches=[...text.matchAll(marker)];
   if(!matches.length) return text?[text]:[];
   const out=[];
@@ -1216,7 +1216,8 @@ function voiceCandidates(segment){
   // "Poción de gigantismo" -> T7 si ese es su máximo real.
   const familyBest=new Map();
   for(const c of candidates){
-    const key=c.slot+"|"+equipmentBaseId(c.item);
+    const rawFamily=equipmentBaseId(c.item);
+    const key=c.slot+"|"+rawFamily.replace(/^T\d+_/i,"");
     const current=familyBest.get(key);
     const tier=parseItemVariant(c.item.id).tier||0;
     if(!current || (tier>(parseItemVariant(current.item.id).tier||0)) ||
