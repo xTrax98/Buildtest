@@ -1187,6 +1187,10 @@ function voiceCandidates(segment){
         if(ws>=0.45){matched++; score+=ws;}
       }
       const coverage=matched/qTokens.length;
+      // No aceptamos un objeto que solo comparta una palabra del nombre.
+      // Por ejemplo, "capucha de erudito" no puede acabar en "hábito de erudito":
+      // ambos comparten "erudito", pero falta "capucha".
+      if(qTokens.length > 1 && coverage < 0.999) continue;
       score=score*25 + coverage*70;
       const nq=normalizeVoiceText(name);
       const qq=normalizeVoiceText(query);
