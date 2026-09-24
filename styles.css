@@ -912,3 +912,17 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
 .right-sidebar .voice-build-panel .voice-actions{flex-wrap:wrap}
 .right-sidebar .voice-build-panel .voice-actions button{flex:1 1 auto}
 @media(max-width:680px){.voice-side-launcher{align-items:stretch;flex-direction:column}.right-sidebar .voice-build-panel .voice-actions{flex-direction:column}.right-sidebar .voice-build-panel .voice-actions button{width:100%}}
+
+/* Voice recording feedback */
+.voice-button.voice-recording, .voice-side-launcher.voice-recording .voice-button, #startVoice.voice-recording {
+  background: #b83232;
+  border-color: #e45b5b;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(228,91,91,.18), 0 0 18px rgba(228,91,91,.28);
+  animation: voiceRecordingPulse 1.2s ease-in-out infinite;
+}
+.voice-side-launcher.voice-recording .voice-status { color: #ff8f8f; font-weight: 700; }
+@keyframes voiceRecordingPulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(228,91,91,.14), 0 0 12px rgba(228,91,91,.18); }
+  50% { box-shadow: 0 0 0 4px rgba(228,91,91,.20), 0 0 22px rgba(228,91,91,.34); }
+}

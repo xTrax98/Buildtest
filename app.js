@@ -1402,6 +1402,13 @@ function renderVoiceMatches(result){
   box.innerHTML=rows+bad;
 }
 
+function setVoiceRecordingUI(active){
+  const btn=$("#startVoice");
+  const bar=$(".voice-side-launcher");
+  if(btn) btn.classList.toggle("voice-recording",!!active);
+  if(bar) bar.classList.toggle("voice-recording",!!active);
+}
+
 function startVoiceRecognition(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){$("#voiceStatus").textContent=t("voiceUnsupported");return;}
@@ -1416,9 +1423,9 @@ function startVoiceRecognition(){
   $("#voiceStatus").textContent=t("voiceStarting");
   $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
   $("#stopVoice").disabled=false;
-  voiceRecognition.onstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
-  voiceRecognition.onaudiostart=()=>{$("#voiceStatus").textContent=t("voiceAudioStart");};
-  voiceRecognition.onspeechstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
+  voiceRecognition.onstart=()=>{setVoiceRecordingUI(true);$("#voiceStatus").textContent=t("voiceListening");};
+  voiceRecognition.onaudiostart=()=>{setVoiceRecordingUI(true);$("#voiceStatus").textContent=t("voiceAudioStart");};
+  voiceRecognition.onspeechstart=()=>{setVoiceRecordingUI(true);$("#voiceStatus").textContent=t("voiceListening");};
   voiceRecognition.onresult=e=>{
     let added=[];
     for(let i=e.resultIndex||0;i<e.results.length;i++){
@@ -1443,16 +1450,19 @@ function startVoiceRecognition(){
     $("#voiceStatus").textContent=messages[e.error]||`Error de voz: ${e.error}`;
     if(e.error==="not-allowed"||e.error==="audio-capture"){
       voiceShouldListen=false;
+      setVoiceRecordingUI(false);
       $("#stopVoice").disabled=true;
     }
   };
   voiceRecognition.onend=()=>{
     voiceRecognition=null;
     if(voiceShouldListen){
+      setVoiceRecordingUI(true);
       $("#voiceStatus").textContent=t("voiceListening");
       setTimeout(()=>{ if(voiceShouldListen) startVoiceRecognition(); },120);
       return;
     }
+    setVoiceRecordingUI(false);
     $("#stopVoice").disabled=true;
     $("#voiceStatus").textContent=voiceAccumulatedTranscript?t("voiceReadyToProcess"):t("voiceNoMatch");
     voicePendingTranscript=voiceAccumulatedTranscript.trim();
@@ -1465,12 +1475,14 @@ function startVoiceRecognition(){
     $("#voiceStatus").textContent=t("voiceStartError");
     voiceRecognition=null;
     voiceShouldListen=false;
+    setVoiceRecordingUI(false);
     $("#stopVoice").disabled=true;
   }
 }
 
 function stopVoiceRecognition(){
   voiceShouldListen=false;
+  setVoiceRecordingUI(false);
   if(voiceRecognition){
     try{voiceRecognition.stop();}catch{}
   }else{
@@ -1498,6 +1510,7 @@ function processVoiceBuild(){
 
 function clearVoiceBuild(){
   voiceShouldListen=false;
+  setVoiceRecordingUI(false);
   if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
   voiceAccumulatedTranscript="";
   voiceResults=[];
