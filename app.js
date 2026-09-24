@@ -1105,6 +1105,8 @@ function voiceCanonicalSegment(segment){
   s=s.replace(/\btapa\b/g,"capa");
   s=s.replace(/\b(?:tedford|tetford|teford|thet ford)\b/g,"thetford");
   s=s.replace(/\b(?:marlock|mar lok|mart lok|marlow|marlo|martlok|mart lock)\b/g,"martlock");
+  // Atajos de voz para ciudades/facciones de capas: "Lym" debe resolver directamente a Lymhurst.
+  s=s.replace(/\b(?:lym|lim|lym hurst|lynhurst|lynhur)\b/g,"lymhurst");
   if(/\btallada\b/.test(s) && !/\bespada\b/.test(s)) s=s.replace(/\btallada\b/,"espada tallada");
   s=s.replace(/\bcomida\s+guiso\b/g,"guiso");
   s=s.replace(/\bbolsa\s+de\s+soldado\b/g,"botas de soldado");
@@ -1248,7 +1250,12 @@ function voiceGenericCandidates(slot,qNorm,variant){
     if(stew.length) return stew;
   }
   if(slot==="potion" && /^(pocion de energia|energia|pocion energia)$/.test(qNorm)){
-    return /\benergia\b/.test(name) || /ENERGY/i.test(rest) ? 1600 : 0;
+    const energy=pool.filter(e=>{
+      const rest=equipmentBaseId(e.item).replace(/^T\d+_/i,"");
+      const name=normalizeVoiceText(getName(e.item));
+      return /\benergia\b/.test(name) || /ENERGY/i.test(rest);
+    });
+    if(energy.length) return energy;
   }
   if(slot==="potion" && /^(energia|pocion de energia|pocion energia)$/.test(qNorm)){
     const energy=pool.filter(e=>{
