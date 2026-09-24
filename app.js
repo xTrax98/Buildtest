@@ -9,17 +9,17 @@ const state = {
 
 const I18N = {
   es: {
-    title:"Albion Build Creator", subtitle:"Creador de builds para Albion Online",
+    title:"Creador de builds por xTrux", subtitle:"Creador de builds para Albion Online",
     buildNamePlaceholder:"Nombre de la build", bag:"Bolsa", head:"Cabeza", cape:"Capa",
     weapon:"Arma", armor:"Pecho", offhand:"Secundaria", potion:"Poción", shoes:"Botas", food:"Comida",
     selectWeapon:"Seleccionar objeto", selectorHelp:"Busca por nombre o filtra por categoría.", offhandCompatibility:"Con un arma de una mano puedes elegir cualquier secundaria válida.",
     close:"Cerrar", cancel:"Cancelar", searchPlaceholder:"Buscar objeto...", chooseVariant:"Configura el tier, encantamiento y calidad.", equipmentVariantHelp:"Elige la variante que quieres añadir a la build.", consumableVariantHelp:"Este objeto no utiliza encantamiento ni calidad.",
     savePreset:"Guardar como preset", newBuild:"Nueva build", presets:"Presets", presetsHelp:"Guarda builds para reutilizarlas más tarde.",
-    library:"Biblioteca", libraryHelp:"Organiza tus builds y composiciones.", exportAll:"Exportar todo", importAll:"Importar todo", exportDone:"Datos exportados correctamente.", importDone:"Datos importados correctamente.", importInvalid:"El archivo no es un respaldo válido de Albion Build Creator.", importConfirm:"Importar este respaldo reemplazará tus presets y composiciones actuales. ¿Continuar?", myPresets:"Mis presets", myCompositions:"Mis composiciones", myZvZCompositions:"Mis composiciones ZvZ",
+    library:"Biblioteca", libraryHelp:"Organiza tus builds y composiciones.", exportAll:"Exportar todo", importAll:"Importar todo", exportDone:"Datos exportados correctamente.", importDone:"Datos añadidos correctamente. No se ha borrado nada.", importInvalid:"El archivo no es un respaldo válido de Albion Build Creator.", importConfirm:"Los datos del respaldo se añadirán a los que ya tienes. No se borrará nada. ¿Continuar?", myPresets:"Mis presets", myCompositions:"Mis composiciones", myZvZCompositions:"Mis composiciones ZvZ",
     noPresets:"Todavía no hay presets guardados.", noCompositions:"Todavía no hay composiciones.", compositionsHelp:"Organiza presets por rol.",
     newComposition:"Nueva composición", newZvZComposition:"Nueva composición ZvZ", compositionName:"Nombre de la composición", player:"Jugador", role:"Rol", preset:"Preset", addMember:"Añadir miembro", saveComposition:"Guardar composición", cancel:"Cancelar",
-    compositionSaved:"Composición guardada: ", presetsCount:"presets", edit:"Editar", view:"Ver", backToCreator:"Volver al creador", saveNames:"Guardar nombres", zvzNamePlaceholder:"Nombre del jugador", zvzPreset:"Preset", zvzCompositionHelp:"Selecciona presets para tu composición ZvZ. Los nombres se ponen desde Ver.", compositionPreview:"Vista previa de la composición", players:"jugadores",
-    load:"Cargar", duplicate:"Duplicar", delete:"Eliminar", saved:"Preset guardado: ",
+    compositionSaved:"Composición guardada: ", presetsCount:"presets", edit:"Editar", view:"Ver", backToCreator:"Volver al creador", saveNames:"Guardar nombres", screenshotDiscord:"📸 Crear imagen para Discord", screenshotWorking:"Generando imagen...", screenshotDone:"Imagen creada.", screenshotError:"No se pudo crear la imagen.", zvzNamePlaceholder:"Nombre del jugador", zvzPreset:"Preset", zvzCompositionHelp:"Selecciona presets para tu composición ZvZ. Los nombres se ponen desde Ver.", compositionPreview:"Vista previa de la composición", players:"jugadores",
+    load:"Cargar", duplicate:"Duplicar", rename:"Cambiar nombre", delete:"Eliminar", saved:"Preset guardado: ",
     voiceBuild:"Crear build por voz", voiceListeningTitle:"Build por voz", voiceHelp:"Di los objetos de la build en cualquier orden.", voiceReady:"Pulsa el micrófono y habla.", startListening:"Escuchar", stopListening:"Parar", applyVoice:"Aplicar a la build", voiceUnsupported:"Tu navegador no admite reconocimiento de voz.", voiceListening:"Escuchando...", voiceNothing:"No he entendido ningún objeto.", voiceFound:"He encontrado:", voiceAmbiguous:"No he podido identificar con seguridad:", voiceApplied:"Build aplicada desde voz.", voiceStarting:"Activando micrófono...", voiceNoMatch:"No he detectado una frase clara. Prueba a hablar más cerca del micrófono.", voiceAudioStart:"Micrófono activo. Habla ahora.", voiceStartError:"No se pudo iniciar el reconocimiento.", clearVoice:"Limpiar", voiceSearching:"Buscando objetos...", voiceCleared:"Texto de voz limpiado.", voiceProcess:"Buscar objetos", voiceReadyToProcess:"Texto capturado. Pulsa Buscar objetos.",
     allCategories:"Todas las categorías", loading:"Cargando objetos...", tier:"Tier",
     enchantment:"Encantamiento", quality:"Calidad", add:"Añadir al build",
@@ -27,17 +27,17 @@ const I18N = {
     noResults:"No se han encontrado objetos.", selected:"Seleccionado: ", twoHanded:"Arma a dos manos", offhandNeedsWeapon:"Selecciona primero un arma de una mano.", offhandLocked:"La secundaria no está disponible con esta arma."
   },
   en: {
-    title:"Albion Build Creator", subtitle:"Albion Online build creator",
+    title:"Build Creator by xTrux", subtitle:"Albion Online build creator",
     buildNamePlaceholder:"Build name", bag:"Bag", head:"Head", cape:"Cape",
     weapon:"Weapon", armor:"Armor", offhand:"Off-hand", potion:"Potion", shoes:"Shoes", food:"Food",
     selectWeapon:"Select item", selectorHelp:"Search by name or filter by category.", offhandCompatibility:"With a one-handed weapon you can choose any valid off-hand.",
     close:"Close", cancel:"Cancel", searchPlaceholder:"Search item...", chooseVariant:"Configure tier, enchantment and quality.", equipmentVariantHelp:"Choose the variant you want to add to the build.", consumableVariantHelp:"This item does not use enchantment or quality.",
     savePreset:"Save as preset", newBuild:"New build", presets:"Presets", presetsHelp:"Save builds to reuse them later.",
-    library:"Library", libraryHelp:"Organize your builds and compositions.", exportAll:"Export all", importAll:"Import all", exportDone:"Data exported successfully.", importDone:"Data imported successfully.", importInvalid:"This file is not a valid Albion Build Creator backup.", importConfirm:"Importing this backup will replace your current presets and compositions. Continue?", myPresets:"My presets", myCompositions:"My compositions", myZvZCompositions:"My ZvZ compositions",
+    library:"Library", libraryHelp:"Organize your builds and compositions.", exportAll:"Export all", importAll:"Import all", exportDone:"Data exported successfully.", importDone:"Data added successfully. Nothing was deleted.", importInvalid:"This file is not a valid Albion Build Creator backup.", importConfirm:"The backup data will be added to what you already have. Nothing will be deleted. Continue?", myPresets:"My presets", myCompositions:"My compositions", myZvZCompositions:"My ZvZ compositions",
     noPresets:"No saved presets yet.", noCompositions:"No compositions yet.", compositionsHelp:"Organize presets by role.",
     newComposition:"New composition", newZvZComposition:"New ZvZ composition", compositionName:"Composition name", player:"Player", role:"Role", preset:"Preset", addMember:"Add member", saveComposition:"Save composition", cancel:"Cancel",
-    compositionSaved:"Composition saved: ", presetsCount:"presets", edit:"Edit", view:"View", backToCreator:"Back to creator", saveNames:"Save names", zvzNamePlaceholder:"Player name", zvzPreset:"Preset", zvzCompositionHelp:"Select presets for your ZvZ composition. Names are entered from View.", compositionPreview:"Composition preview", players:"players",
-    load:"Load", duplicate:"Duplicate", delete:"Delete", saved:"Preset saved: ",
+    compositionSaved:"Composition saved: ", presetsCount:"presets", edit:"Edit", view:"View", backToCreator:"Back to creator", saveNames:"Save names", screenshotDiscord:"📸 Create image for Discord", screenshotWorking:"Generating image...", screenshotDone:"Image created.", screenshotError:"Could not create the image.", zvzNamePlaceholder:"Player name", zvzPreset:"Preset", zvzCompositionHelp:"Select presets for your ZvZ composition. Names are entered from View.", compositionPreview:"Composition preview", players:"players",
+    load:"Load", duplicate:"Duplicate", rename:"Rename", delete:"Delete", saved:"Preset saved: ",
     voiceBuild:"Create build by voice", voiceListeningTitle:"Build by voice", voiceHelp:"Say the build items in any order.", voiceReady:"Press the microphone and speak.", startListening:"Listen", stopListening:"Stop", applyVoice:"Apply to build", voiceUnsupported:"Your browser does not support speech recognition.", voiceListening:"Listening...", voiceNothing:"I could not understand any item.", voiceFound:"Found:", voiceAmbiguous:"I could not identify with confidence:", voiceApplied:"Build applied from voice.", voiceStarting:"Activating microphone...", voiceNoMatch:"I did not detect a clear phrase. Try speaking closer to the microphone.", voiceAudioStart:"Microphone active. Speak now.", voiceStartError:"Could not start speech recognition.", clearVoice:"Clear", voiceSearching:"Searching items...", voiceCleared:"Voice text cleared.", voiceProcess:"Find objects", voiceReadyToProcess:"Text captured. Press Find objects.",
     allCategories:"All categories", loading:"Loading items...", tier:"Tier",
     enchantment:"Enchantment", quality:"Quality", add:"Add to build",
@@ -126,14 +126,54 @@ function importAllData(file){
         && isArrayOfObjects(data.compositions)
         && isArrayOfObjects(data.zvzCompositions);
       if(!valid){ alert(t("importInvalid")); return; }
-      if(!confirm(t("importConfirm"))) return;
+      // Importar significa AÑADIR.
+      // Nunca reemplazamos lo que ya existe.
+      // Generamos nuevos IDs para que los datos importados no entren en conflicto
+      // con presets/composiciones que ya estén guardados en este navegador.
+      const existingPresets=getPresets();
+      const existingCompositions=getCompositions();
+      const existingZvZ=getZvZCompositions();
 
-      savePresets(data.presets);
-      saveCompositions(data.compositions);
-      saveZvZCompositions(data.zvzCompositions);
-      state.build=JSON.parse(JSON.stringify(data.currentBuild || {}));
-      $("#buildName").value=data.currentBuildName || "";
-      syncWeaponSlots();
+      const presetIdMap=new Map();
+      const importedPresets=data.presets.map(original=>{
+        const oldId=String(original.id ?? "");
+        const newId=makeCopyId("imported-preset");
+        if(oldId) presetIdMap.set(oldId,newId);
+        return {
+          ...JSON.parse(JSON.stringify(original)),
+          id:newId,
+          createdAt:original.createdAt || new Date().toISOString()
+        };
+      });
+
+      const importedCompositions=data.compositions.map(original=>({
+        ...JSON.parse(JSON.stringify(original)),
+        id:makeCopyId("imported-composition"),
+        createdAt:original.createdAt || new Date().toISOString(),
+        members:(original.members||[]).map(member=>({
+          ...JSON.parse(JSON.stringify(member)),
+          id:makeCopyId("imported-member"),
+          presetId:presetIdMap.get(String(member.presetId ?? "")) || member.presetId
+        }))
+      }));
+
+      const importedZvZ=data.zvzCompositions.map(original=>({
+        ...JSON.parse(JSON.stringify(original)),
+        id:makeCopyId("imported-zvz"),
+        createdAt:original.createdAt || new Date().toISOString(),
+        members:(original.members||[]).map(member=>({
+          ...JSON.parse(JSON.stringify(member)),
+          id:makeCopyId("imported-zvz-member"),
+          presetId:presetIdMap.get(String(member.presetId ?? "")) || member.presetId
+        }))
+      }));
+
+      savePresets(existingPresets.concat(importedPresets));
+      saveCompositions(existingCompositions.concat(importedCompositions));
+      saveZvZCompositions(existingZvZ.concat(importedZvZ));
+
+      // La build que está abierta actualmente también se conserva.
+      // El respaldo importado se incorpora a la biblioteca sin pisar el trabajo actual.
       renderBuild();
       renderPresets();
       renderCompositions();
@@ -148,12 +188,12 @@ function importAllData(file){
       const status=$("#status");
       if(status) status.textContent=t("importDone");
     }catch(err){
+      console.error(err);
       alert(t("importInvalid"));
     }
   };
   reader.readAsText(file);
 }
-
 let editingCompositionId = null;
 let editingZvZCompositionId = null;
 let viewedCompositionId = null;
@@ -176,15 +216,17 @@ function renderCompositions(){
         <div class="action-menu-dropdown">
           <button class="ghost" type="button" data-view-composition="${escapeHtml(c.id)}">${escapeHtml(t("view"))}</button>
           <button class="ghost" type="button" data-duplicate-composition="${escapeHtml(c.id)}">${escapeHtml(t("duplicate"))}</button>
+          <button class="ghost" type="button" data-rename-composition="${escapeHtml(c.id)}">${escapeHtml(t("rename"))}</button>
           <button class="ghost" type="button" data-edit-composition="${escapeHtml(c.id)}">${escapeHtml(t("edit"))}</button>
           <button class="ghost danger" type="button" data-delete-composition="${escapeHtml(c.id)}">${escapeHtml(t("delete"))}</button>
         </div>
       </details>
     </div>`).join("");
-  box.querySelectorAll("[data-view-composition]").forEach(b=>b.addEventListener("click",()=>showCompositionPreview(b.getAttribute("data-view-composition"))));
-  box.querySelectorAll("[data-duplicate-composition]").forEach(b=>b.addEventListener("click",()=>duplicateComposition(b.getAttribute("data-duplicate-composition"))));
-  box.querySelectorAll("[data-edit-composition]").forEach(b=>b.addEventListener("click",()=>openCompositionEditor(b.getAttribute("data-edit-composition"))));
-  box.querySelectorAll("[data-delete-composition]").forEach(b=>b.addEventListener("click",()=>deleteComposition(b.getAttribute("data-delete-composition"))));
+  box.querySelectorAll("[data-view-composition]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); showCompositionPreview(b.getAttribute("data-view-composition")); }));
+  box.querySelectorAll("[data-duplicate-composition]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); duplicateComposition(b.getAttribute("data-duplicate-composition")); }));
+  box.querySelectorAll("[data-edit-composition]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); openCompositionEditor(b.getAttribute("data-edit-composition")); }));
+  box.querySelectorAll("[data-rename-composition]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); renameComposition(b.dataset.renameComposition); }));
+  box.querySelectorAll("[data-delete-composition]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); deleteComposition(b.getAttribute("data-delete-composition")); }));
 }
 
 function openCompositionEditor(id=null){
@@ -265,11 +307,12 @@ function renderZvZCompositions(){
   const box = $("#zvzList"); const list = getZvZCompositions(); const count = $("#zvzCount");
   if(count) count.textContent = list.length;
   if(!list.length){ box.innerHTML = `<div class="library-empty"><div class="library-empty-icon">＋</div><strong>${escapeHtml(t("noCompositions"))}</strong><p>${escapeHtml(t("zvzCompositionHelp"))}</p></div>`; return; }
-  box.innerHTML = list.map(c=>`<div class="composition-card"><div><strong>${escapeHtml(c.name)}</strong><small>${(c.members||[]).length} ${escapeHtml(t("players"))}</small></div><details class="action-menu"><summary class="ghost action-menu-trigger" aria-label="Más opciones">...</summary><div class="action-menu-dropdown"><button class="ghost" type="button" data-view-zvz="${escapeHtml(c.id)}">${escapeHtml(t("view"))}</button><button class="ghost" type="button" data-duplicate-zvz="${escapeHtml(c.id)}">${escapeHtml(t("duplicate"))}</button><button class="ghost" type="button" data-edit-zvz="${escapeHtml(c.id)}">${escapeHtml(t("edit"))}</button><button class="ghost danger" type="button" data-delete-zvz="${escapeHtml(c.id)}">${escapeHtml(t("delete"))}</button></div></details></div>`).join("");
-  box.querySelectorAll("[data-view-zvz]").forEach(b=>b.addEventListener("click",()=>showZvZPreview(b.getAttribute("data-view-zvz"))));
-  box.querySelectorAll("[data-duplicate-zvz]").forEach(b=>b.addEventListener("click",()=>duplicateZvZ(b.getAttribute("data-duplicate-zvz"))));
-  box.querySelectorAll("[data-edit-zvz]").forEach(b=>b.addEventListener("click",()=>openZvZEditor(b.getAttribute("data-edit-zvz"))));
-  box.querySelectorAll("[data-delete-zvz]").forEach(b=>b.addEventListener("click",()=>deleteZvZ(b.getAttribute("data-delete-zvz"))));
+  box.innerHTML = list.map(c=>`<div class="composition-card"><div><strong>${escapeHtml(c.name)}</strong><small>${(c.members||[]).length} ${escapeHtml(t("players"))}</small></div><details class="action-menu"><summary class="ghost action-menu-trigger" aria-label="Más opciones">...</summary><div class="action-menu-dropdown"><button class="ghost" type="button" data-view-zvz="${escapeHtml(c.id)}">${escapeHtml(t("view"))}</button><button class="ghost" type="button" data-duplicate-zvz="${escapeHtml(c.id)}">${escapeHtml(t("duplicate"))}</button><button class="ghost" type="button" data-rename-zvz="${escapeHtml(c.id)}">${escapeHtml(t("rename"))}</button><button class="ghost" type="button" data-edit-zvz="${escapeHtml(c.id)}">${escapeHtml(t("edit"))}</button><button class="ghost danger" type="button" data-delete-zvz="${escapeHtml(c.id)}">${escapeHtml(t("delete"))}</button></div></details></div>`).join("");
+  box.querySelectorAll("[data-view-zvz]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); showZvZPreview(b.getAttribute("data-view-zvz")); }));
+  box.querySelectorAll("[data-duplicate-zvz]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); duplicateZvZ(b.getAttribute("data-duplicate-zvz")); }));
+  box.querySelectorAll("[data-edit-zvz]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); openZvZEditor(b.getAttribute("data-edit-zvz")); }));
+  box.querySelectorAll("[data-rename-zvz]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); renameZvZ(b.dataset.renameZvZ); }));
+  box.querySelectorAll("[data-delete-zvz]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); deleteZvZ(b.getAttribute("data-delete-zvz")); }));
 }
 
 function openZvZEditor(id=null){
@@ -304,13 +347,60 @@ function saveZvZEditor(){
 
 function deleteZvZ(id){if(viewedZvZCompositionId===id)hideCompositionPreview();saveZvZCompositions(getZvZCompositions().filter(x=>x.id!==id));renderZvZCompositions();}
 
+async function createCompositionImage(){
+  const preview = $("#compositionPreview");
+  if(!preview || preview.classList.contains("hidden")) return false;
+  const btns = preview.querySelectorAll("#closeCompositionPreview,#saveZvZNames,#captureCompositionImage,#captureZvZImage");
+  btns.forEach(b=>{ b.dataset.captureDisplay=b.style.display; b.style.display="none"; });
+  const inputs = preview.querySelectorAll(".zvz-player-name");
+  const originals=[];
+  inputs.forEach(input=>{
+    const span=document.createElement("span");
+    span.className="zvz-capture-name";
+    span.textContent=input.value || input.placeholder || "";
+    span.style.cssText="display:block;width:100%;box-sizing:border-box;background:#0e1014;color:#f1f3f5;border:1px solid #343941;border-radius:8px;padding:7px 9px;min-height:34px;font:inherit;";
+    input.style.display="none";
+    input.parentNode.insertBefore(span,input);
+    originals.push([input,span]);
+  });
+  try{
+    if(typeof window.html2canvas!=="function") throw new Error("html2canvas no disponible");
+    const canvas=await window.html2canvas(preview,{backgroundColor:"#0b0d10",scale:2,useCORS:true,allowTaint:false,logging:false});
+    const link=document.createElement("a");
+    const title=(preview.querySelector(".composition-preview-head h2")?.textContent||"composicion").trim().replace(/[^a-z0-9áéíóúüñ _-]/gi,"").replace(/\s+/g,"-")||"composicion";
+    link.download=`${title}-discord.png`;
+    link.href=canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return true;
+  }catch(err){
+    console.error("Error creando imagen de composición:",err);
+    return false;
+  }finally{
+    originals.forEach(([input,span])=>{ span.remove(); input.style.display=""; });
+    btns.forEach(b=>{ b.style.display=b.dataset.captureDisplay||""; delete b.dataset.captureDisplay; });
+  }
+}
+
+async function handleCompositionImageButton(){
+  const button=this;
+  if(button.disabled) return;
+  button.disabled=true;
+  const old=button.textContent;
+  button.textContent=t("screenshotWorking");
+  const ok=await createCompositionImage();
+  button.textContent=ok?t("screenshotDone"):t("screenshotError");
+  setTimeout(()=>{button.textContent=old;button.disabled=false;},1400);
+}
+
 function showZvZPreview(id){
   const composition=getZvZCompositions().find(x=>x.id===id);if(!composition)return;viewedZvZCompositionId=id;viewedCompositionId=null;
   const creator=$("#buildCreatorView"),preview=$("#compositionPreview"),workspace=document.querySelector(".workspace"),presets=getPresets(),members=composition.members||[];
   const slotOrder=["mainhand","offhand","head","armor","shoes","cape","bag","potion","food"];
-  preview.innerHTML=`<div class="composition-preview-head"><div><div class="preview-kicker">${escapeHtml(t("compositionPreview"))} · ZvZ</div><h2>${escapeHtml(composition.name)}</h2><p>${members.length} ${escapeHtml(t("players"))}</p></div><button id="closeCompositionPreview" class="ghost" type="button">${escapeHtml(t("backToCreator"))}</button></div><div class="zvz-build-list">${members.length?members.map((member,index)=>{const preset=presets.find(p=>p.id===member.presetId),build=preset?.build||{},currentName=member.displayName||`${t("player")} ${index+1}`;return `<article class="zvz-build-row"><div class="zvz-build-number">${index+1}</div><div class="zvz-build-name"><input class="zvz-player-name" data-zvz-name="${escapeHtml(member.id)}" maxlength="40" value="${escapeHtml(currentName)}" placeholder="${escapeHtml(t("zvzNamePlaceholder"))}"><small>${escapeHtml(preset?.name||"-")}</small></div><div class="composition-build-grid">${slotOrder.map(slot=>{const item=build[slot];if(slot==="offhand"&&(!item||(build.mainhand&&item.id===build.mainhand.id)))return "";if(!item)return "";return `<div class="composition-icon" title="${escapeHtml(item.name||"")}"><img src="${iconUrl(item.id,item.enchant||0,item.quality||1)}" alt="${escapeHtml(item.name||"")}" onerror="this.style.opacity='.25'"></div>`;}).join("")}</div></article>`;}).join(""): `<div class="library-empty"><strong>${escapeHtml(t("noCompositions"))}</strong></div>`}</div><div class="zvz-preview-actions"><button id="saveZvZNames" class="primary" type="button">${escapeHtml(t("saveNames"))}</button></div>`;
+  preview.innerHTML=`<div class="composition-preview-head"><div><div class="preview-kicker">${escapeHtml(t("compositionPreview"))} · ZvZ</div><h2>${escapeHtml(composition.name)}</h2><p>${members.length} ${escapeHtml(t("players"))}</p></div><button id="closeCompositionPreview" class="ghost" type="button">${escapeHtml(t("backToCreator"))}</button></div><div class="zvz-build-list">${members.length?members.map((member,index)=>{const preset=presets.find(p=>p.id===member.presetId),build=preset?.build||{},currentName=member.displayName||`${t("player")} ${index+1}`;return `<article class="zvz-build-row"><div class="zvz-build-number">${index+1}</div><div class="zvz-build-name"><input class="zvz-player-name" data-zvz-name="${escapeHtml(member.id)}" maxlength="40" value="${escapeHtml(currentName)}" placeholder="${escapeHtml(t("zvzNamePlaceholder"))}"><small>${escapeHtml(preset?.name||"-")}</small></div><div class="composition-build-grid">${slotOrder.map(slot=>{const item=build[slot];if(slot==="offhand"&&(!item||(build.mainhand&&item.id===build.mainhand.id)))return "";if(!item)return "";return `<div class="composition-icon" title="${escapeHtml(item.name||"")}"><img src="${iconUrl(item.id,item.enchant||0,item.quality||1)}" alt="${escapeHtml(item.name||"")}" onerror="this.style.opacity='.25'"></div>`;}).join("")}</div></article>`;}).join(""): `<div class="library-empty"><strong>${escapeHtml(t("noCompositions"))}</strong></div>`}</div><div class="zvz-preview-actions"><button id="captureZvZImage" class="ghost" type="button">${escapeHtml(t("screenshotDiscord"))}</button><button id="saveZvZNames" class="primary" type="button">${escapeHtml(t("saveNames"))}</button></div>`;
   creator.classList.add("hidden");preview.classList.remove("hidden");workspace?.classList.add("preview-mode");$("#selector")?.classList.add("hidden");$("#itemEditor")?.classList.add("hidden");state.activeSlot=null;state.selectedBase=null;document.querySelectorAll(".slot").forEach(s=>s.classList.remove("selected"));
-  $("#closeCompositionPreview").addEventListener("click",hideCompositionPreview);$("#saveZvZNames").addEventListener("click",saveZvZNames);
+  $("#closeCompositionPreview").addEventListener("click",hideCompositionPreview);$("#saveZvZNames").addEventListener("click",saveZvZNames);$("#captureZvZImage").addEventListener("click",handleCompositionImageButton);
 }
 
 function saveZvZNames(){const id=viewedZvZCompositionId;if(!id)return;const list=getZvZCompositions(),comp=list.find(x=>x.id===id);if(!comp)return;document.querySelectorAll("[data-zvz-name]").forEach(input=>{const m=comp.members.find(x=>x.id===input.dataset.zvzName);if(m)m.displayName=input.value.trim();});saveZvZCompositions(list);renderZvZCompositions();showZvZPreview(id);}
@@ -363,7 +453,8 @@ function showCompositionPreview(id){
           </div>
         </article>`;
       }).join("") : `<div class="library-empty"><strong>${escapeHtml(t("noCompositions"))}</strong></div>`}
-    </div>`;
+    </div>
+    <div class="composition-preview-actions"><button id="captureCompositionImage" class="primary" type="button">${escapeHtml(t("screenshotDiscord"))}</button></div>`;
   // La vista previa sustituye completamente al creador en el panel central.
   creator.classList.add("hidden");
   preview.classList.remove("hidden");
@@ -374,6 +465,7 @@ function showCompositionPreview(id){
   state.selectedBase = null;
   document.querySelectorAll(".slot").forEach(s=>s.classList.remove("selected"));
   $("#closeCompositionPreview").addEventListener("click",hideCompositionPreview);
+  $("#captureCompositionImage").addEventListener("click",handleCompositionImageButton);
 }
 
 function hideCompositionPreview(){
@@ -418,6 +510,19 @@ function loadPreset(id){
   $("#status").textContent = `${t("selected")}${preset.name}`;
 }
 
+function renamePreset(id){
+  const list=getPresets();
+  const preset=list.find(x=>x.id===id);
+  if(!preset) return;
+  const next=window.prompt(t("rename"), preset.name || "");
+  if(next===null) return;
+  const name=next.trim();
+  if(!name) return;
+  preset.name=name;
+  savePresets(list);
+  renderPresets();
+}
+
 function deletePreset(id){
   savePresets(getPresets().filter(x=>x.id!==id));
   renderPresets();
@@ -445,6 +550,19 @@ function duplicatePreset(id){
   setLibraryTab("presets");
 }
 
+function renameComposition(id){
+  const list=getCompositions();
+  const composition=list.find(x=>x.id===id);
+  if(!composition) return;
+  const next=window.prompt(t("rename"), composition.name || "");
+  if(next===null) return;
+  const name=next.trim();
+  if(!name) return;
+  composition.name=name;
+  saveCompositions(list);
+  renderCompositions();
+}
+
 function duplicateComposition(id){
   const list=getCompositions();
   const original=list.find(x=>x.id===id);
@@ -461,6 +579,19 @@ function duplicateComposition(id){
   saveCompositions(list.slice(0,50));
   renderCompositions();
   setLibraryTab("compositions");
+}
+
+function renameZvZ(id){
+  const list=getZvZCompositions();
+  const composition=list.find(x=>x.id===id);
+  if(!composition) return;
+  const next=window.prompt(t("rename"), composition.name || "");
+  if(next===null) return;
+  const name=next.trim();
+  if(!name) return;
+  composition.name=name;
+  saveZvZCompositions(list);
+  renderZvZCompositions();
 }
 
 function duplicateZvZ(id){
@@ -503,24 +634,42 @@ function renderPresets(){
         <div class="action-menu-dropdown">
           <button class="ghost" type="button" data-load-preset="${escapeHtml(p.id)}">${escapeHtml(t("load"))}</button>
           <button class="ghost" type="button" data-duplicate-preset="${escapeHtml(p.id)}">${escapeHtml(t("duplicate"))}</button>
+          <button class="ghost" type="button" data-rename-preset="${escapeHtml(p.id)}">${escapeHtml(t("rename"))}</button>
           <button class="ghost danger" type="button" data-delete-preset="${escapeHtml(p.id)}">${escapeHtml(t("delete"))}</button>
         </div>
       </details>
     </div>`;
   }).join("");
-  box.querySelectorAll("[data-load-preset]").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset.loadPreset)));
-  box.querySelectorAll("[data-duplicate-preset]").forEach(b=>b.addEventListener("click",()=>duplicatePreset(b.dataset.duplicatePreset)));
-  box.querySelectorAll("[data-delete-preset]").forEach(b=>b.addEventListener("click",()=>deletePreset(b.dataset.deletePreset)));
+  box.querySelectorAll("[data-load-preset]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); loadPreset(b.dataset.loadPreset); }));
+  box.querySelectorAll("[data-duplicate-preset]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); duplicatePreset(b.dataset.duplicatePreset); }));
+  box.querySelectorAll("[data-rename-preset]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); renamePreset(b.dataset.renamePreset); }));
+  box.querySelectorAll("[data-delete-preset]").forEach(b=>b.addEventListener("click",()=>{ b.closest("details")?.removeAttribute("open"); deletePreset(b.dataset.deletePreset); }));
 }
 
 
 
 function setLibraryTab(tab){
+  const activeTab=document.querySelector("[data-library-tab].active")?.dataset.libraryTab || null;
+  // Clicking the already-open section closes it with the same accordion animation.
+  if(tab===activeTab) tab=null;
   if(tab !== "compositions" && tab !== "zvz") hideCompositionPreview();
-  document.querySelectorAll("[data-library-tab]").forEach(b=>b.classList.toggle("active",b.dataset.libraryTab===tab));
-  $("#presetsList").classList.toggle("hidden",tab!=="presets");
-  $("#compositionsPanel").classList.toggle("hidden",tab!=="compositions");
-  $("#zvzPanel").classList.toggle("hidden",tab!=="zvz");
+
+  document.querySelectorAll("[data-library-tab]").forEach(b=>{
+    const isActive=b.dataset.libraryTab===tab;
+    b.classList.toggle("active",isActive);
+    b.setAttribute("aria-expanded",isActive ? "true" : "false");
+  });
+
+  [
+    ["presets",$("#presetsList")],
+    ["compositions",$("#compositionsPanel")],
+    ["zvz",$("#zvzPanel")]
+  ].forEach(([key,panel])=>{
+    if(!panel) return;
+    panel.classList.toggle("library-content-open",key===tab);
+  });
+
+  if(tab==="presets") renderPresets();
   if(tab==="compositions"){
     if(!$("#compositionList")) resetCompositionPanel();
     renderCompositions();
@@ -530,6 +679,103 @@ function setLibraryTab(tab){
     renderZvZCompositions();
   }
 }
+
+/* 0.3.101 TEST: action menu gets a full-screen interaction shield.
+   The menu is portaled to <body> and a fixed backdrop sits underneath it,
+   so absolutely nothing behind the menu can receive a click/tap. */
+(function installActionMenuPortal(){
+  let portal = null;
+  let shield = null;
+  let sourceMenu = null;
+
+  function closePortal(){
+    if(portal){ portal.remove(); portal=null; }
+    if(shield){ shield.remove(); shield=null; }
+    sourceMenu=null;
+  }
+
+  function runPortalAction(button){
+    const attrs = button.dataset || {};
+    closePortal();
+    if(attrs.loadPreset) return loadPreset(attrs.loadPreset);
+    if(attrs.duplicatePreset) return duplicatePreset(attrs.duplicatePreset);
+    if(attrs.renamePreset) return renamePreset(attrs.renamePreset);
+    if(attrs.deletePreset) return deletePreset(attrs.deletePreset);
+    if(attrs.viewComposition) return showCompositionPreview(attrs.viewComposition);
+    if(attrs.duplicateComposition) return duplicateComposition(attrs.duplicateComposition);
+    if(attrs.renameComposition) return renameComposition(attrs.renameComposition);
+    if(attrs.editComposition) return openCompositionEditor(attrs.editComposition);
+    if(attrs.deleteComposition) return deleteComposition(attrs.deleteComposition);
+    if(attrs.viewZvZ) return showZvZPreview(attrs.viewZvZ);
+    if(attrs.duplicateZvZ) return duplicateZvZ(attrs.duplicateZvZ);
+    if(attrs.renameZvZ) return renameZvZ(attrs.renameZvZ);
+    if(attrs.editZvZ) return openZvZEditor(attrs.editZvZ);
+    if(attrs.deleteZvZ) return deleteZvZ(attrs.deleteZvZ);
+  }
+
+  function openPortal(details){
+    closePortal();
+    sourceMenu=details;
+    const trigger=details?.querySelector('.action-menu-trigger');
+    const dropdown=details?.querySelector('.action-menu-dropdown');
+    if(!trigger || !dropdown) return;
+
+    // Full-screen shield: nothing behind the menu can be clicked/tapped.
+    shield=document.createElement('div');
+    shield.className='action-menu-shield';
+    shield.setAttribute('aria-hidden','true');
+    document.body.appendChild(shield);
+    shield.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();closePortal();},true);
+    shield.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();},true);
+
+    portal=document.createElement('div');
+    portal.className='action-menu-portal';
+    portal.setAttribute('role','menu');
+    portal.innerHTML=dropdown.innerHTML;
+    document.body.appendChild(portal);
+
+    const r=trigger.getBoundingClientRect();
+    const width=Math.max(150, Math.ceil(r.width + 100));
+    portal.style.width=width+'px';
+
+    const menuRect=portal.getBoundingClientRect();
+    const gap=6;
+    let left=r.right-menuRect.width;
+    left=Math.max(8,Math.min(left,window.innerWidth-menuRect.width-8));
+    let top=r.bottom+gap;
+    if(top+menuRect.height>window.innerHeight-8) top=r.top-menuRect.height-gap;
+    top=Math.max(8,Math.min(top,window.innerHeight-menuRect.height-8));
+    portal.style.left=Math.round(left)+'px';
+    portal.style.top=Math.round(top)+'px';
+
+    portal.addEventListener('pointerdown',e=>e.stopPropagation(),true);
+    portal.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const button=event.target.closest('button');
+      if(button && portal.contains(button)) runPortalAction(button);
+    },true);
+  }
+
+  // Capture phase prevents the native <summary>/<details> behavior entirely.
+  document.addEventListener('pointerdown',event=>{
+    const trigger=event.target?.closest?.('.action-menu-trigger');
+    if(trigger){
+      event.preventDefault();
+      event.stopPropagation();
+      openPortal(trigger.closest('details'));
+    }
+  },true);
+  document.addEventListener('click',event=>{
+    if(event.target?.closest?.('.action-menu-trigger')){
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  },true);
+
+  window.addEventListener('resize',()=>{ if(sourceMenu && portal) openPortal(sourceMenu); });
+  window.addEventListener('scroll',()=>{ if(sourceMenu && portal) openPortal(sourceMenu); },true);
+})();
 
 document.querySelectorAll("[data-library-tab]").forEach(b=>b.addEventListener("click",()=>setLibraryTab(b.dataset.libraryTab)));
 $("#newComposition")?.addEventListener("click",()=>openCompositionEditor());

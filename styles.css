@@ -115,14 +115,45 @@ h1{font-size:28px;letter-spacing:-.02em}
 .library-head{margin-bottom:16px}
 .library-head h2{font-size:19px}
 .library-head p{color:var(--muted);font-size:13px;margin-top:4px}
-.library-menu{display:grid;gap:7px;margin-bottom:14px}
-.library-tab{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 13px;text-align:left}
+.library-menu{display:grid;gap:8px;margin-bottom:14px}
+.library-section{min-width:0}
+.library-tab{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 13px;text-align:left;position:relative;z-index:2}
 .library-tab:hover{border-color:var(--accent)}
 .library-tab.active{background:var(--panel2);border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .library-tab-title{font-weight:700}
 .library-tab-count{min-width:24px;height:24px;padding:3px 7px;border-radius:999px;background:#111419;color:var(--muted);font-size:12px;text-align:center}
 .library-tab.active .library-tab-count{color:var(--text)}
-.library-content{min-width:0}
+.library-content{
+  min-width:0;
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  transform:translateY(-6px);
+  padding:0 2px;
+  margin:0;
+  transition:max-height .28s ease,opacity .2s ease,transform .28s ease,margin .28s ease,padding .28s ease;
+}
+/* 0.3.89: action menus must always render above the library sections. */
+.presets-list,
+.library-content-open .presets-list{
+  overflow:visible;
+}
+.library-section{
+  position:relative;
+  z-index:1;
+}
+.library-section:has(.action-menu[open]){
+  z-index:10000;
+}
+
+.library-content.library-content-open{
+  max-height:2400px;
+  opacity:1;
+  transform:translateY(0);
+  margin-top:7px;
+  padding:0 2px 1px;
+  overflow:visible;
+}
 .library-empty{padding:18px 8px;color:var(--muted);text-align:center;border:1px dashed var(--border);border-radius:10px}
 .library-empty strong{display:block;color:var(--text);font-size:13px}
 .library-empty p{margin-top:6px;font-size:12px;line-height:1.45}
@@ -716,6 +747,7 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
 .action-menu{
   position:relative;
   flex:none;
+  z-index:10000;
 }
 .action-menu > summary{
   list-style:none;
@@ -741,7 +773,7 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
   position:absolute;
   right:0;
   top:calc(100% + 6px);
-  z-index:1000;
+  z-index:2147483647;
   min-width:150px;
   padding:6px;
   display:grid;
@@ -925,4 +957,166 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
 @keyframes voiceRecordingPulse {
   0%,100% { box-shadow: 0 0 0 2px rgba(228,91,91,.14), 0 0 12px rgba(228,91,91,.18); }
   50% { box-shadow: 0 0 0 4px rgba(228,91,91,.20), 0 0 22px rgba(228,91,91,.34); }
+}
+
+
+/* 0.3.81 TEST: prevent composition preview item art from being clipped at the bottom.
+   Give the icon a tiny inner margin and render the image as a block element. */
+/* 0.3.83 TEST: normal compositions should use the same full-size equipment
+   presentation as ZvZ previews. The previous 40px compact rule made the
+   normal composition icons visibly smaller and allowed the lower edge to clip. */
+.workspace.preview-mode .composition-build-card {
+  min-height: 82px;
+}
+.workspace.preview-mode .composition-build-card .composition-build-grid {
+  overflow: visible !important;
+  align-items: center;
+  gap: 5px;
+}
+.workspace.preview-mode .composition-build-card .composition-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  flex: 0 0 52px;
+  padding: 0;
+}
+.workspace.preview-mode .composition-build-card .composition-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 0.3.94: the entire card owning an open action menu must sit above every following card. */
+.preset-card:has(.action-menu[open]),
+.composition-card:has(.action-menu[open]){
+  position:relative;
+  z-index:2147483646 !important;
+}
+.preset-card:has(.action-menu[open]) .action-menu,
+.composition-card:has(.action-menu[open]) .action-menu,
+.preset-card:has(.action-menu[open]) .action-menu-dropdown,
+.composition-card:has(.action-menu[open]) .action-menu-dropdown{
+  z-index:2147483647 !important;
+}
+
+/* 0.3.95: when an action menu is open, other library cards must not receive clicks through it. */
+.presets-list:has(.action-menu[open]) .preset-card:not(:has(.action-menu[open])),
+#compositionList:has(.action-menu[open]) .composition-card:not(:has(.action-menu[open])),
+#zvzList:has(.action-menu[open]) .composition-card:not(:has(.action-menu[open])){
+  pointer-events:none !important;
+}
+.presets-list:has(.action-menu[open]) .preset-card:has(.action-menu[open]),
+#compositionList:has(.action-menu[open]) .composition-card:has(.action-menu[open]),
+#zvzList:has(.action-menu[open]) .composition-card:has(.action-menu[open]){
+  pointer-events:auto !important;
+}
+
+/* 0.3.93: action menus are a true top layer inside the library. */
+.library-section:has(.action-menu[open]){
+  z-index:2147483000 !important;
+}
+.library-section:has(.action-menu[open]) .action-menu,
+.library-section:has(.action-menu[open]) .action-menu-dropdown{
+  z-index:2147483647 !important;
+}
+.action-menu-dropdown{
+  pointer-events:auto;
+  isolation:isolate;
+}
+.action-menu-dropdown .ghost{
+  position:relative;
+  z-index:1;
+  pointer-events:auto;
+}
+
+/* 0.3.96: opened action menu is its own top stacking layer. */
+.library-section:has(.action-menu[open]) .library-content {
+  position: relative;
+  z-index: 2147483646;
+}
+.library-section:has(.action-menu[open]) .action-menu {
+  position: relative;
+  z-index: 2147483647;
+}
+.library-section:has(.action-menu[open]) .action-menu-dropdown {
+  pointer-events: auto;
+}
+
+/* 0.3.97 TEST: body-level action menu portal. It is outside all library
+   stacking/overflow contexts and therefore always wins visually and for clicks. */
+.action-menu-portal{
+  position:fixed !important;
+  z-index:2147483647 !important;
+  display:grid;
+  gap:4px;
+  padding:6px;
+  background:#111419;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 12px 32px rgba(0,0,0,.6);
+  box-sizing:border-box;
+  pointer-events:auto !important;
+  isolation:isolate;
+}
+.action-menu-portal .ghost{
+  width:100%;
+  text-align:left;
+  padding:9px 10px;
+  white-space:nowrap;
+  position:relative;
+  z-index:1;
+  pointer-events:auto !important;
+}
+.action-menu-portal .ghost:hover{border-color:var(--accent)}
+
+/* 0.3.97 TEST: body-level action menu portal. */
+.action-menu-portal{
+  position:fixed !important;
+  z-index:2147483647 !important;
+  display:grid;
+  gap:4px;
+  padding:6px;
+  background:#111419;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 12px 32px rgba(0,0,0,.6);
+  box-sizing:border-box;
+  pointer-events:auto !important;
+  isolation:isolate;
+}
+.action-menu-portal .ghost{
+  width:100%;
+  text-align:left;
+  padding:9px 10px;
+  white-space:nowrap;
+  position:relative;
+  z-index:1;
+  pointer-events:auto !important;
+}
+.action-menu-portal .ghost:hover{border-color:var(--accent)}
+/* Hide the original dropdown while its body-level portal clone is active. */
+.action-menu[open] > .action-menu-dropdown{
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+
+/* 0.3.99: export composition image */
+.composition-preview-actions{display:flex;justify-content:flex-end;margin-top:14px}
+.zvz-preview-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+@media(max-width:680px){.composition-preview-actions,.zvz-preview-actions{justify-content:stretch}.composition-preview-actions button,.zvz-preview-actions button{flex:1}}
+
+
+/* 0.3.101 TEST: interaction shield below the portaled action menu. */
+.action-menu-shield{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483646 !important;
+  background:transparent !important;
+  pointer-events:auto !important;
+  touch-action:none;
+}
+.action-menu-portal{
+  z-index:2147483647 !important;
+  pointer-events:auto !important;
 }

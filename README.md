@@ -1,3 +1,3 @@
-# Albion Build Creator 0.3.80 TEST
+Albion Build Creator 0.3.101 TEST
 
-Experimental voice-recognition update. Stable remains 0.3.44.
+Action menus use a full-screen interaction shield so no card underneath can receive clicks/taps while the menu is open.
