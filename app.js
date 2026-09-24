@@ -1079,7 +1079,7 @@ function voiceCleanName(text){
 
 function voiceSlotFromText(text){
   const s=normalizeVoiceText(text);
-  if(/\b(capa|capas|cape)\b/.test(s)) return "cape";
+  if(/\b(capa|capas|tapa|cape)\b/.test(s)) return "cape";
   if(/\b(bolsa|bolsas|bag|bags)\b/.test(s)) return "bag";
   if(/\b(pocion|pociones|potion|potions)\b/.test(s)) return "potion";
   if(/\b(guiso|comida|comidas|estofado|food|stew)\b/.test(s)) return "food";
@@ -1095,7 +1095,7 @@ function voiceSegments(transcript){
   const text=normalizeVoiceText(transcript)
     .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y)\b/g," ")
     .replace(/\s+/g," ").trim();
-  const marker=/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  const marker=/\b(?:capa|capas|tapa|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|food|stew|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
   const matches=[...text.matchAll(marker)];
   if(!matches.length) return text?[text]:[];
   const out=[];
@@ -1133,16 +1133,11 @@ function voiceItemNames(item){
 }
 
 function voiceSlotForItem(item){
-  const id=equipmentBaseId(item).replace(/^T\d+_/i,"");
-  if(/^HEAD_/i.test(id)) return "head";
-  if(/^ARMOR_/i.test(id)) return "armor";
-  if(/^SHOES_/i.test(id)) return "shoes";
-  if(/^CAPE/i.test(id)) return "cape";
-  if(/^BAG/i.test(id)) return "bag";
-  if(/^POTION_/i.test(id)) return "potion";
-  if(/^(MEAL_|FOOD_|FISH_)/i.test(id)) return "food";
-  if(/^OFF_/i.test(id)) return "offhand";
-  if(isWeapon(item)) return "mainhand";
+  const slots=["head","armor","shoes","cape","bag","potion","food","offhand","mainhand"];
+  for(const slot of slots){
+    if(slot==="offhand" && !canUseOffhand()) continue;
+    if(matchesSlot(item,slot)) return slot;
+  }
   return null;
 }
 
@@ -1187,15 +1182,17 @@ function voiceCandidates(segment){
         if(ws>=0.45){matched++; score+=ws;}
       }
       const coverage=matched/qTokens.length;
-      // No aceptamos un objeto que solo comparta una palabra del nombre.
-      // Por ejemplo, "capucha de erudito" no puede acabar en "hábito de erudito":
-      // ambos comparten "erudito", pero falta "capucha".
+      // Todas las palabras relevantes deben estar presentes. Esto evita, por
+      // ejemplo, confundir "capucha de erudito" con "hábito de erudito".
       if(qTokens.length > 1 && coverage < 0.999) continue;
       score=score*25 + coverage*70;
       const nq=normalizeVoiceText(name);
       const qq=normalizeVoiceText(query);
-      if(nq===qq) score+=180;
-      else if(qq && nq.includes(qq)) score+=130;
+      if(nq===qq) score+=400;
+      else if(qq && nq.includes(qq)) score+=220;
+      // Coincidencia por tokens exactos: muy importante para comida, bolsas
+      // y otros nombres compuestos.
+      if(qTokens.every(qt=>nTokens.includes(qt))) score+=300;
       best=Math.max(best,score);
     }
     if(best>35) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
@@ -1218,7 +1215,9 @@ function parseVoiceBuild(transcript){
     if(!candidates.length){ambiguous.push(segment);continue;}
     const best=candidates[0];
     const second=candidates[1];
-    if(second && best.score-second.score<5){ambiguous.push(segment);continue;}
+    const bestName=normalizeVoiceText(getName(best.item));
+    const secondName=second?normalizeVoiceText(getName(second.item)):"";
+    if(second && best.score-second.score<5 && bestName!==secondName){ambiguous.push(segment);continue;}
     parsed.push({segment,slot:best.slot,item:best.item,tier:best.tier||parseItemVariant(best.item.id).tier,enchant:best.enchant||0,quality:1});
   }
   return {parsed,ambiguous};
