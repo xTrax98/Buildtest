@@ -1041,6 +1041,7 @@ let voicePendingTranscript = "";
 let voiceIndex = new Map();
 let voiceAlbionWords = [];
 let voiceWordIndex = new Map();
+let voiceWordFuzzyIndex = new Map();
 const voiceSlotCache = new Map();
 
 function normalizeVoiceText(value){
@@ -1314,15 +1315,25 @@ function voiceAlbionWordScore(spoken,known){
   return Math.max(d*0.55+j*0.25+phon*0.20, d*0.72+phon*0.28);
 }
 
+function voiceFuzzyBucketKey(word){
+  const k=voicePhoneticKey(word);
+  return `${k.slice(0,2)}|${Math.max(3,Math.min(12,word.length))}`;
+}
+
 function voiceNormalizeQueryWithAlbionWords(tokens){
   return tokens.map(token=>{
     if(!voiceAlbionWords.length || token.length<4) return token;
-    let best=token, bestScore=0;
-    const bucketKeys=[];
-    for(let len=Math.max(3,token.length-2);len<=token.length+2;len++) bucketKeys.push(len);
+    const keys=[];
+    const base=voiceFuzzyBucketKey(token);
+    keys.push(base);
+    const k=voicePhoneticKey(token);
+    for(let len=Math.max(3,token.length-2);len<=Math.min(12,token.length+2);len++){
+      keys.push(`${k.slice(0,1)}|${len}`);
+    }
     const seen=new Set();
-    for(const len of bucketKeys){
-      const bucket=voiceWordIndex.get(`len:${len}`)||[];
+    let best=token,bestScore=0;
+    for(const key of keys){
+      const bucket=voiceWordFuzzyIndex.get(key)||[];
       for(const known of bucket){
         if(seen.has(known)) continue;
         seen.add(known);
@@ -1330,7 +1341,7 @@ function voiceNormalizeQueryWithAlbionWords(tokens){
         if(sc>bestScore){bestScore=sc;best=known;}
       }
     }
-    return bestScore>=0.72?best:token;
+    return bestScore>=0.70?best:token;
   });
 }
 
@@ -1608,6 +1619,7 @@ function buildVoiceIndex(){
   voiceIndex=new Map([["head",[]],["armor",[]],["shoes",[]],["cape",[]],["bag",[]],["potion",[]],["food",[]],["offhand",[]],["mainhand",[]]]);
   voiceSlotCache.clear();
   voiceWordIndex=new Map();
+  voiceWordFuzzyIndex=new Map();
   const words=new Set();
   const addWord=(key,entry)=>{
     let arr=voiceWordIndex.get(key);
@@ -1625,7 +1637,17 @@ function buildVoiceIndex(){
         if(w.length<3) continue;
         words.add(w);
         addWord(`${slot}|${w}`,entry);
-        addWord(`len:${w.length}`,w);
+        const fk=voiceFuzzyBucketKey(w);
+        let fb=voiceWordFuzzyIndex.get(fk);
+        if(!fb){fb=[];voiceWordFuzzyIndex.set(fk,fb);}
+        if(!fb.includes(w)) fb.push(w);
+        const first=voicePhoneticKey(w).slice(0,1);
+        for(let len=Math.max(3,w.length-1);len<=Math.min(12,w.length+1);len++){
+          const fk2=`${first}|${len}`;
+          let fb2=voiceWordFuzzyIndex.get(fk2);
+          if(!fb2){fb2=[];voiceWordFuzzyIndex.set(fk2,fb2);}
+          if(!fb2.includes(w)) fb2.push(w);
+        }
       }
     }
   }
