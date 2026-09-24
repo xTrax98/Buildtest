@@ -1034,6 +1034,8 @@ function renderBuild(){
 
 let voiceRecognition = null;
 let voiceResults = [];
+let voiceShouldListen = false;
+let voiceAccumulatedTranscript = "";
 let voiceSearchRunning = false;
 let voicePendingTranscript = "";
 let voiceIndex = new Map();
@@ -1404,51 +1406,78 @@ function startVoiceRecognition(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){$("#voiceStatus").textContent=t("voiceUnsupported");return;}
   if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
+  voiceShouldListen=true;
+  voiceAccumulatedTranscript=voiceAccumulatedTranscript||"";
   voiceRecognition=new SR();
   voiceRecognition.lang=state.lang==="es"?"es-ES":"en-US";
   voiceRecognition.interimResults=false;
-  voiceRecognition.continuous=false;
+  voiceRecognition.continuous=true;
   voiceRecognition.maxAlternatives=3;
   $("#voiceStatus").textContent=t("voiceStarting");
-  $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("stopListening"))}</span>`;
+  $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
+  $("#stopVoice").disabled=false;
   voiceRecognition.onstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
   voiceRecognition.onaudiostart=()=>{$("#voiceStatus").textContent=t("voiceAudioStart");};
   voiceRecognition.onspeechstart=()=>{$("#voiceStatus").textContent=t("voiceListening");};
   voiceRecognition.onresult=e=>{
-    const transcript=Array.from(e.results).map(r=>r[0].transcript).join(" ").trim();
-    $("#voiceTranscript").textContent=transcript||t("voiceNoMatch");
-    // Do not search while the browser is still delivering audio. We only
-    // capture the final transcript here; parsing happens once onend.
+    let added=[];
+    for(let i=e.resultIndex||0;i<e.results.length;i++){
+      if(e.results[i].isFinal) added.push(e.results[i][0].transcript.trim());
+    }
+    if(added.length){
+      voiceAccumulatedTranscript=(voiceAccumulatedTranscript+" "+added.join(" ")).trim();
+      $("#voiceTranscript").textContent=voiceAccumulatedTranscript;
+    }
   };
   voiceRecognition.onnomatch=()=>{
-    $("#voiceStatus").textContent=t("voiceNoMatch");
+    if(voiceShouldListen) $("#voiceStatus").textContent=t("voiceListening");
   };
   voiceRecognition.onerror=e=>{
     const messages={
       "not-allowed":"Permiso de micrófono denegado.",
       "audio-capture":"No se ha encontrado ningún micrófono.",
-      "no-speech":"No he detectado voz. Pulsa Escuchar y habla.",
+      "no-speech":"Sin voz detectada; sigo escuchando...",
       "network":"Error de red del reconocimiento de voz.",
       "aborted":"Reconocimiento detenido."
     };
     $("#voiceStatus").textContent=messages[e.error]||`Error de voz: ${e.error}`;
-    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
+    if(e.error==="not-allowed"||e.error==="audio-capture"){
+      voiceShouldListen=false;
+      $("#stopVoice").disabled=true;
+    }
   };
   voiceRecognition.onend=()=>{
-    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
     voiceRecognition=null;
-    voicePendingTranscript=$("#voiceTranscript")?.textContent?.trim()||"";
-    if(voicePendingTranscript && voicePendingTranscript!==t("voiceNoMatch") && voicePendingTranscript!==t("voiceReady")) {
-      $("#voiceStatus").textContent=t("voiceReadyToProcess");
-      $("#processVoice").disabled=false;
+    if(voiceShouldListen){
+      $("#voiceStatus").textContent=t("voiceListening");
+      setTimeout(()=>{ if(voiceShouldListen) startVoiceRecognition(); },120);
+      return;
     }
+    $("#stopVoice").disabled=true;
+    $("#voiceStatus").textContent=voiceAccumulatedTranscript?t("voiceReadyToProcess"):t("voiceNoMatch");
+    voicePendingTranscript=voiceAccumulatedTranscript.trim();
+    $("#processVoice").disabled=!voicePendingTranscript;
+    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
   };
   try{
     voiceRecognition.start();
   }catch(e){
     $("#voiceStatus").textContent=t("voiceStartError");
-    $("#startVoice").innerHTML=`🎙️ <span>${escapeHtml(t("startListening"))}</span>`;
     voiceRecognition=null;
+    voiceShouldListen=false;
+    $("#stopVoice").disabled=true;
+  }
+}
+
+function stopVoiceRecognition(){
+  voiceShouldListen=false;
+  if(voiceRecognition){
+    try{voiceRecognition.stop();}catch{}
+  }else{
+    voicePendingTranscript=voiceAccumulatedTranscript.trim();
+    $("#voiceStatus").textContent=voicePendingTranscript?t("voiceReadyToProcess"):t("voiceNoMatch");
+    $("#processVoice").disabled=!voicePendingTranscript;
+    $("#stopVoice").disabled=true;
   }
 }
 
@@ -1468,7 +1497,9 @@ function processVoiceBuild(){
 }
 
 function clearVoiceBuild(){
+  voiceShouldListen=false;
   if(voiceRecognition){try{voiceRecognition.stop();}catch{} voiceRecognition=null;}
+  voiceAccumulatedTranscript="";
   voiceResults=[];
   voicePendingTranscript="";
   $("#voiceTranscript").textContent=t("voiceReady");
@@ -1570,7 +1601,8 @@ $("#importFile")?.addEventListener("change",e=>{ importAllData(e.target.files?.[
 
 $("#voiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.toggle("hidden");});
 $("#closeVoiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.add("hidden");});
-$("#startVoice")?.addEventListener("click",()=>{ if(voiceRecognition){try{voiceRecognition.stop();}catch{}} else startVoiceRecognition(); });
+$("#startVoice")?.addEventListener("click",()=>{ if(!voiceShouldListen) startVoiceRecognition(); });
+$("#stopVoice")?.addEventListener("click",stopVoiceRecognition);
 $("#clearVoice")?.addEventListener("click",clearVoiceBuild);
 $("#processVoice")?.addEventListener("click",processVoiceBuild);
 $("#applyVoice")?.addEventListener("click",applyVoiceBuild);
