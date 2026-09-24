@@ -1132,47 +1132,79 @@ function voiceItemNames(item){
   return out.map(normalizeVoiceText).filter(Boolean);
 }
 
+function voiceSlotForItem(item){
+  const id=equipmentBaseId(item).replace(/^T\d+_/i,"");
+  if(/^HEAD_/i.test(id)) return "head";
+  if(/^ARMOR_/i.test(id)) return "armor";
+  if(/^SHOES_/i.test(id)) return "shoes";
+  if(/^CAPE/i.test(id)) return "cape";
+  if(/^BAG/i.test(id)) return "bag";
+  if(/^POTION_/i.test(id)) return "potion";
+  if(/^(MEAL_|FOOD_|FISH_)/i.test(id)) return "food";
+  if(/^OFF_/i.test(id)) return "offhand";
+  if(isWeapon(item)) return "mainhand";
+  return null;
+}
+
+function voiceQueryTokens(text){
+  return normalizeVoiceText(text)
+    .replace(/\b(?:quiero|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|una|un|la|el|las|los|de|del|con|y|and|a|an|the|of)\b/g," ")
+    .split(/\s+/).filter(Boolean)
+    .filter(t=>t.length>1 && !/^\d+$/.test(t));
+}
+
 function voiceCandidates(segment){
-  const slot=voiceSlotFromText(segment);
-  const query=voiceCleanName(segment);
+  const spokenSlot=voiceSlotFromText(segment);
   const variant=voiceVariant(segment);
-  const slots=slot?[slot]:["mainhand","offhand","head","armor","shoes","cape","bag","potion","food"];
-  const qTokens=query.split(/\s+/).filter(t=>t.length>1 && !/^\d+$/.test(t));
+  const query=voiceCleanName(segment);
+  const qTokens=voiceQueryTokens(query);
   const candidates=[];
-  for(const s of slots){
-    if(s==="offhand" && !canUseOffhand()) continue;
-    for(const item of state.items){
-      if(!matchesSlot(item,s)) continue;
-      // If the user explicitly said a tier, only compare against that tier.
-      // The dump contains the same item family once per tier; without this
-      // restriction T4/T5/T6... all score equally and the result is marked
-      // ambiguous even when the spoken name is exact.
-      if(variant.tier){
-        const itemTier=parseItemVariant(item.id).tier;
-        if(itemTier!==variant.tier) continue;
-      }
-      const names=voiceItemNames(item);
-      let bestNameScore=0;
-      for(const name of names){
-        const nameTokens=name.split(/\s+/).filter(t=>t.length>1);
-        let score=0,matched=0;
-        for(const qt of qTokens){
-          let best=0;
-          for(const nt of nameTokens) best=Math.max(best,voiceWordSimilarity(qt,nt));
-          if(best>=0.55){matched++; score+=best*18;}
-        }
-        if(qTokens.length && matched===qTokens.length) score+=70;
-        if(query && name===query) score+=150;
-        if(query && name.includes(query)) score+=100;
-        if(qTokens.length && nameTokens.length) score+=(matched/qTokens.length)*25;
-        bestNameScore=Math.max(bestNameScore,score);
-      }
-      if(bestNameScore>0) candidates.push({item,slot:s,score:bestNameScore,tier:variant.tier,enchant:variant.enchant});
+
+  for(const item of state.items){
+    const itemSlot=voiceSlotForItem(item);
+    if(!itemSlot) continue;
+    if(spokenSlot && itemSlot!==spokenSlot) continue;
+    if(itemSlot==="offhand" && !canUseOffhand()) continue;
+
+    // Prefer the exact spoken tier when one was provided.
+    if(variant.tier){
+      const itemTier=parseItemVariant(item.id).tier;
+      if(itemTier!==variant.tier) continue;
     }
+
+    const names=voiceItemNames(item);
+    let best=0;
+    for(const name of names){
+      const nTokens=voiceQueryTokens(name);
+      if(!nTokens.length || !qTokens.length) continue;
+      let matched=0, score=0;
+      for(const qt of qTokens){
+        let ws=0;
+        for(const nt of nTokens){
+          ws=Math.max(ws,voiceWordSimilarity(qt,nt));
+          if(normalizeVoiceText(nt).startsWith(normalizeVoiceText(qt)) || normalizeVoiceText(qt).startsWith(normalizeVoiceText(nt))) ws=Math.max(ws,0.92);
+        }
+        if(ws>=0.45){matched++; score+=ws;}
+      }
+      const coverage=matched/qTokens.length;
+      score=score*25 + coverage*70;
+      const nq=normalizeVoiceText(name);
+      const qq=normalizeVoiceText(query);
+      if(nq===qq) score+=180;
+      else if(qq && nq.includes(qq)) score+=130;
+      best=Math.max(best,score);
+    }
+    if(best>35) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
   }
+
   candidates.sort((a,b)=>b.score-a.score);
+  // One result per actual item family; the tier has already been filtered above.
   const seen=new Set();
-  return candidates.filter(c=>{const key=c.slot+"|"+equipmentBaseId(c.item);if(seen.has(key))return false;seen.add(key);return true;}).slice(0,8);
+  return candidates.filter(c=>{
+    const key=c.slot+"|"+equipmentBaseId(c.item);
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  }).slice(0,12);
 }
 
 function parseVoiceBuild(transcript){
