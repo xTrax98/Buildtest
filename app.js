@@ -1161,7 +1161,9 @@ function voiceCandidates(segment){
     if(spokenSlot && itemSlot!==spokenSlot) continue;
     if(itemSlot==="offhand" && !canUseOffhand()) continue;
 
-    // Prefer the exact spoken tier when one was provided.
+    // Si el usuario dice un tier, lo respetamos. Si no lo dice,
+    // NO le obligamos a decir T8/T7: más abajo elegimos automáticamente
+    // el tier máximo disponible de esa familia de objeto.
     if(variant.tier){
       const itemTier=parseItemVariant(item.id).tier;
       if(itemTier!==variant.tier) continue;
@@ -1193,19 +1195,38 @@ function voiceCandidates(segment){
       // Coincidencia por tokens exactos: muy importante para comida, bolsas
       // y otros nombres compuestos.
       if(qTokens.every(qt=>nTokens.includes(qt))) score+=300;
+
+      // Atajos naturales para alimentos: "guiso" sin más detalles significa
+      // Guiso de ternera; si se dice "guiso avalonico" se mantiene esa
+      // coincidencia específica.
+      if(itemSlot==="food") {
+        const nqNorm=normalizeVoiceText(name);
+        const qNorm=normalizeVoiceText(query);
+        if(qNorm==="guiso" && /\bguiso de ternera\b/.test(nqNorm)) score+=650;
+        if(qNorm.includes("guiso avalonico") && /\bguiso avalonico\b/.test(nqNorm)) score+=650;
+      }
+
       best=Math.max(best,score);
     }
     if(best>35) candidates.push({item,slot:itemSlot,score:best,tier:variant.tier,enchant:variant.enchant});
   }
 
-  candidates.sort((a,b)=>b.score-a.score);
-  // One result per actual item family; the tier has already been filtered above.
-  const seen=new Set();
-  return candidates.filter(c=>{
+  // Si no se dijo tier, elegimos automáticamente el mayor tier disponible
+  // para cada familia. Así "Espada tallada" -> T8, mientras que
+  // "Poción de gigantismo" -> T7 si ese es su máximo real.
+  const familyBest=new Map();
+  for(const c of candidates){
     const key=c.slot+"|"+equipmentBaseId(c.item);
-    if(seen.has(key)) return false;
-    seen.add(key); return true;
-  }).slice(0,12);
+    const current=familyBest.get(key);
+    const tier=parseItemVariant(c.item.id).tier||0;
+    if(!current || (tier>(parseItemVariant(current.item.id).tier||0)) ||
+       (tier===(parseItemVariant(current.item.id).tier||0) && c.score>current.score)){
+      familyBest.set(key,c);
+    }
+  }
+  candidates=[...familyBest.values()];
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates.slice(0,12);
 }
 
 function parseVoiceBuild(transcript){
