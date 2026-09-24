@@ -904,3 +904,11 @@ button,.ghost,.library-tab,.slot,.result{transition:border-color .15s,background
 
 /* 0.3.61: voice capture and object search are separate phases */
 #processVoice{border-color:var(--accent)}
+
+/* 0.3.70: voice workspace lives in the right sidebar so the central build stays visible */
+.voice-side-launcher{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.voice-side-launcher .voice-button{flex:0 0 auto}
+.right-sidebar .voice-build-panel{margin:0 0 12px}
+.right-sidebar .voice-build-panel .voice-actions{flex-wrap:wrap}
+.right-sidebar .voice-build-panel .voice-actions button{flex:1 1 auto}
+@media(max-width:680px){.voice-side-launcher{align-items:stretch;flex-direction:column}.right-sidebar .voice-build-panel .voice-actions{flex-direction:column}.right-sidebar .voice-build-panel .voice-actions button{width:100%}}

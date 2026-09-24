@@ -1517,6 +1517,7 @@ function applyVoiceBuild(){
   }
   clearInvalidOffhand(); renderBuild(); $("#voiceStatus").textContent=t("voiceApplied");
   $("#voiceBuildPanel").classList.add("hidden");
+  if(voicePreviousSelectorHidden===false || state.activeSlot) $("#selector")?.classList.remove("hidden");
 }
 
 function buildVoiceIndex(){
@@ -1599,8 +1600,25 @@ $("#exportAll")?.addEventListener("click",exportAllData);
 $("#importAll")?.addEventListener("click",()=>$("#importFile")?.click());
 $("#importFile")?.addEventListener("change",e=>{ importAllData(e.target.files?.[0]); e.target.value=""; });
 
-$("#voiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.toggle("hidden");});
-$("#closeVoiceBuild")?.addEventListener("click",()=>{$("#voiceBuildPanel").classList.add("hidden");});
+let voicePreviousSelectorHidden=true;
+$("#voiceBuild")?.addEventListener("click",()=>{
+  const panel=$("#voiceBuildPanel");
+  const opening=panel.classList.contains("hidden");
+  if(opening){
+    voicePreviousSelectorHidden=$("#selector")?.classList.contains("hidden") ?? true;
+    panel.classList.remove("hidden");
+    $("#selector")?.classList.add("hidden");
+    $("#itemEditor")?.classList.add("hidden");
+  }else{
+    panel.classList.add("hidden");
+    if(!voicePreviousSelectorHidden && !state.activeSlot) $("#selector")?.classList.remove("hidden");
+    if(state.activeSlot) $("#selector")?.classList.remove("hidden");
+  }
+});
+$("#closeVoiceBuild")?.addEventListener("click",()=>{
+  $("#voiceBuildPanel").classList.add("hidden");
+  if(state.activeSlot || !voicePreviousSelectorHidden) $("#selector")?.classList.remove("hidden");
+});
 $("#startVoice")?.addEventListener("click",()=>{ if(!voiceShouldListen) startVoiceRecognition(); });
 $("#stopVoice")?.addEventListener("click",stopVoiceRecognition);
 $("#clearVoice")?.addEventListener("click",clearVoiceBuild);
