@@ -347,39 +347,109 @@ function saveZvZEditor(){
 
 function deleteZvZ(id){if(viewedZvZCompositionId===id)hideCompositionPreview();saveZvZCompositions(getZvZCompositions().filter(x=>x.id!==id));renderZvZCompositions();}
 
-async function createCompositionImage(){
-  const preview = $("#compositionPreview");
-  if(!preview || preview.classList.contains("hidden")) return false;
-  const btns = preview.querySelectorAll("#closeCompositionPreview,#saveZvZNames,#captureCompositionImage,#captureZvZImage");
-  btns.forEach(b=>{ b.dataset.captureDisplay=b.style.display; b.style.display="none"; });
-  const inputs = preview.querySelectorAll(".zvz-player-name");
-  const originals=[];
-  inputs.forEach(input=>{
-    const span=document.createElement("span");
-    span.className="zvz-capture-name";
-    span.textContent=input.value || input.placeholder || "";
-    span.style.cssText="display:block;width:100%;box-sizing:border-box;background:#0e1014;color:#f1f3f5;border:1px solid #343941;border-radius:8px;padding:7px 9px;min-height:34px;font:inherit;";
-    input.style.display="none";
-    input.parentNode.insertBefore(span,input);
-    originals.push([input,span]);
+function loadCanvasImage(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error("No se pudo cargar la imagen: "+src));
+    img.src=src;
   });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  const rr=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+}
+
+function drawCanvasImageCover(ctx,img,x,y,w,h){
+  const scale=Math.max(w/img.naturalWidth,h/img.naturalHeight);
+  const sw=w/scale, sh=h/scale;
+  const sx=(img.naturalWidth-sw)/2, sy=(img.naturalHeight-sh)/2;
+  ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+}
+
+async function createDiscordCanvas(){
+  const preview=$("#compositionPreview");
+  if(!preview || preview.classList.contains("hidden")) return null;
+  const isZvZ=!!preview.querySelector(".zvz-build-row");
+  const title=(preview.querySelector(".composition-preview-head h2")?.textContent||"Composición").trim();
+  const rows=[...(preview.querySelectorAll(isZvZ?".zvz-build-row":".composition-build-card"))];
+  const width=1500;
+  const headerH=150;
+  const rowH=isZvZ?126:112;
+  const footerH=35;
+  const height=Math.max(360,headerH+rows.length*rowH+footerH);
+  const canvas=document.createElement("canvas");
+  canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#0b0d10";ctx.fillRect(0,0,width,height);
+
+  // Header
+  ctx.fillStyle="#15191f";roundRect(ctx,28,24,width-56,104,16);ctx.fill();
+  ctx.strokeStyle="#343941";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#f5a900";ctx.font="700 28px Arial,sans-serif";ctx.fillText(`${t("compositionPreview")}${isZvZ?" · ZvZ":""}`,55,60);
+  ctx.fillStyle="#f1f3f5";ctx.font="700 34px Arial,sans-serif";ctx.fillText(title,55,100);
+  ctx.fillStyle="#aeb4bd";ctx.font="20px Arial,sans-serif";ctx.textAlign="right";ctx.fillText(`${rows.length} ${t("players")}`,width-55,99);ctx.textAlign="left";
+
+  const iconSize=isZvZ?78:68;
+  const iconGap=10;
+  const startX=isZvZ?585:420;
+  const maxIcons=9;
+
+  for(let i=0;i<rows.length;i++){
+    const row=rows[i], y=headerH+i*rowH+8;
+    ctx.fillStyle="#11151a";roundRect(ctx,28,y,width-56,rowH-10,14);ctx.fill();
+    ctx.strokeStyle="#343941";ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle="#20252d";roundRect(ctx,48,y+22,54,54,12);ctx.fill();
+    ctx.fillStyle="#f5a900";ctx.font="700 24px Arial,sans-serif";ctx.textAlign="center";ctx.fillText(String(i+1),75,y+57);ctx.textAlign="left";
+
+    let name="",sub="";
+    if(isZvZ){
+      name=row.querySelector(".zvz-player-name")?.value?.trim() || row.querySelector(".zvz-player-name")?.placeholder || `${t("player")} ${i+1}`;
+      sub=row.querySelector(".zvz-build-name small")?.textContent?.trim() || "-";
+    }else{
+      name=row.querySelector(".composition-build-info strong")?.textContent?.trim() || "-";
+      sub=row.querySelector(".composition-build-info span")?.textContent?.trim() || "-";
+    }
+    ctx.fillStyle="#f1f3f5";ctx.font="700 24px Arial,sans-serif";
+    const maxNameW=startX-135;
+    let shown=name;
+    while(ctx.measureText(shown).width>maxNameW && shown.length>4) shown=shown.slice(0,-2)+"…";
+    ctx.fillText(shown,125,y+42);
+    ctx.fillStyle="#aeb4bd";ctx.font="18px Arial,sans-serif";ctx.fillText(sub,125,y+70);
+
+    const imgs=[...row.querySelectorAll(".composition-icon img")];
+    const loaded=await Promise.all(imgs.slice(0,maxIcons).map(async imgEl=>{
+      try{return await loadCanvasImage(imgEl.currentSrc||imgEl.src);}catch{return null;}
+    }));
+    for(let j=0;j<loaded.length;j++){
+      const x=startX+j*(iconSize+iconGap), iy=y+(rowH-10-iconSize)/2;
+      ctx.fillStyle="#20252d";roundRect(ctx,x,iy,iconSize,iconSize,10);ctx.fill();
+      const img=loaded[j];
+      if(img){
+        ctx.save();roundRect(ctx,x+2,iy+2,iconSize-4,iconSize-4,8);ctx.clip();drawCanvasImageCover(ctx,img,x+2,iy+2,iconSize-4,iconSize-4);ctx.restore();}
+      ctx.strokeStyle="#454b55";ctx.lineWidth=2;roundRect(ctx,x,iy,iconSize,iconSize,10);ctx.stroke();
+    }
+  }
+  ctx.fillStyle="#666d77";ctx.font="15px Arial,sans-serif";ctx.textAlign="center";ctx.fillText("Albion Build Creator by xTrux",width/2,height-12);ctx.textAlign="left";
+  return canvas;
+}
+
+async function createCompositionImage(){
   try{
-    if(typeof window.html2canvas!=="function") throw new Error("html2canvas no disponible");
-    const canvas=await window.html2canvas(preview,{backgroundColor:"#0b0d10",scale:2,useCORS:true,allowTaint:false,logging:false});
+    const canvas=await createDiscordCanvas();
+    if(!canvas) return false;
     const link=document.createElement("a");
-    const title=(preview.querySelector(".composition-preview-head h2")?.textContent||"composicion").trim().replace(/[^a-z0-9áéíóúüñ _-]/gi,"").replace(/\s+/g,"-")||"composicion";
+    const title=($("#compositionPreview .composition-preview-head h2")?.textContent||"composicion").trim().replace(/[^a-z0-9áéíóúüñ _-]/gi,"").replace(/\s+/g,"-")||"composicion";
     link.download=`${title}-discord.png`;
     link.href=canvas.toDataURL("image/png");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    document.body.appendChild(link);link.click();link.remove();
     return true;
   }catch(err){
     console.error("Error creando imagen de composición:",err);
     return false;
-  }finally{
-    originals.forEach(([input,span])=>{ span.remove(); input.style.display=""; });
-    btns.forEach(b=>{ b.style.display=b.dataset.captureDisplay||""; delete b.dataset.captureDisplay; });
   }
 }
 
