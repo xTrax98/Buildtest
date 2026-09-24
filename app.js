@@ -1093,7 +1093,7 @@ function voiceSlotFromText(text){
   if(/\b(capucha|casco|cascos|cabeza|helmet|helmets|hood|head)\b/.test(s)) return "head";
   if(/\b(armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket)\b/.test(s)) return "armor";
   if(/\b(secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb)\b/.test(s)) return "offhand";
-  if(/\b(arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|tallada|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/.test(s)) return "mainhand";
+  if(/\b(arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|tallada|falce|falces|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/.test(s)) return "mainhand";
   return null;
 }
 
@@ -1113,7 +1113,7 @@ function voiceSegments(transcript){
     .replace(/\b(quiero|una|un|build|con|ponme|pon|dame|usar|usa|llevar|llevo|ademas|además|y|and)\b/g," ")
     .replace(/\s+/g," ").trim();
   text=voiceCanonicalSegment(text);
-  const marker=/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|tortilla|tortillas|sopa|sopas|pastel|pasteles|pan|ensalada|ensaladas|sandwich|sandwiches|food|stew|omelette|roast|pie|meal|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
+  const marker=/\b(?:capa|capas|cape|bolsa|bolsas|bag|bags|pocion|pociones|potion|potions|guiso|comida|comidas|estofado|tortilla|tortillas|sopa|sopas|pastel|pasteles|pan|ensalada|ensaladas|sandwich|sandwiches|food|stew|omelette|roast|pie|meal|sandalia|sandalias|botas|zapatos|shoes|boots|capucha|casco|cascos|cabeza|helmet|helmets|hood|head|armadura|pecho|chaqueta|tunica|robe|armor|armour|chest|jacket|secundaria|secundario|escudo|tomo|antorcha|orbe|offhand|shield|tome|torch|orb|arma|armas|espada|espadas|daga|dagas|hacha|hachas|maza|mazas|martillo|martillos|lanza|lanzas|arco|arcos|ballesta|ballestas|baston|bastones|guante|guantes|falce|falces|sword|swords|dagger|daggers|axe|axes|mace|maces|hammer|hammers|spear|spears|bow|bows|crossbow|crossbows|staff|staffs|glove|gloves|weapon)\b/g;
   const matches=[...text.matchAll(marker)];
   if(!matches.length) return text?[text]:[];
   const out=[];
@@ -1351,13 +1351,15 @@ function voiceCandidates(segment){
             // "marlow" -> "martlock", "balon" -> "badon", etc.
             local=Math.max(local, voiceWordSimilarity(qt,nt));
           }
-          if(local>=0.52){matched++; total+=local;}
+          if(local>=0.60){matched++; total+=local;}
         }
         if(matched===qTokens.length) bestNameScore=Math.max(bestNameScore,total/qTokens.length);
       }
       // La similitud se aplica a TODOS los objetos, no a nombres concretos.
-      // Exigimos una coincidencia razonablemente clara para evitar falsos positivos.
-      if(bestNameScore>=0.56) fuzzy.push({item,slot:spokenSlot,score:560+bestNameScore*220,tier:variant.tier,enchant:variant.enchant});
+      // Elevamos el umbral para evitar falsos positivos como "energia" -> "infernal",
+      // pero seguimos permitiendo errores foneticos claros como "marlow" -> "martlock"
+      // o "balon" -> "badon".
+      if(bestNameScore>=0.64) fuzzy.push({item,slot:spokenSlot,score:560+bestNameScore*220,tier:variant.tier,enchant:variant.enchant});
     }
     candidates.push(...fuzzy);
   }
